@@ -15,7 +15,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.db import Diary
+from app.database.models import Diary
 
 
 async def select_page(

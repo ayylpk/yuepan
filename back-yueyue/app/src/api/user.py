@@ -10,10 +10,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.config.config import API_PREFIX
-from app.common.schemas.user.UserResponse import UserResponse
-from app.common.schemas.user.UserUpdate import UserUpdate
-from app.database.db import get_db
+from app.common.config.settings import API_PREFIX
+from app.common.schemas.user.user_response import UserResponse
+from app.common.schemas.user.user_update import UserUpdate
+from app.database.engine import get_db
 from app.src.service import user_service
 from app.tools.session import LoginUser
 

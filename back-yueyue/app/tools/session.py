@@ -15,7 +15,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
 
-from app.common.config.config import SESSION_COOKIE, SESSION_TTL_SECONDS
+from app.common.config.settings import SESSION_COOKIE, SESSION_TTL_SECONDS
 
 # sid → 会话字典。进程级单例(≈ 静态 ConcurrentHashMap),只放得下几个键。
 _SESSIONS: dict[str, dict] = {}

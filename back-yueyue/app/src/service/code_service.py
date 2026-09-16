@@ -4,7 +4,7 @@
   - 一切以"项目 + path"为事实源:repos=挂了 path 的项目投影,
     tree=files 索引表,log/pull=对 path 目录跑 git 子命令;
   - 目录树是平铺 path 派生的,读文件 = project.path + 相对路径 → 磁盘,
-    中间隔一道 jail(§_jail),这是本模块唯一的安全生命线;
+    中间隔一道 jail(tools/storage.jail,全站共用),这是本模块唯一的安全生命线;
   - tree 空索引时顺手重建一次(git ls-files 毫秒级),
     免得"项目刚挂上、还没点 reindex"的冷启动体验是空页。
 """
@@ -13,13 +13,15 @@ from pathlib import Path
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.schemas.Code.CodeFileResponse import CodeFileResponse
-from app.common.schemas.Code.CodeTreeResponse import CodeTreeResponse
-from app.common.schemas.Code.CommitInfoResponse import CommitInfoResponse
-from app.common.schemas.Code.RepoInfoResponse import RepoInfoResponse
-from app.database.db import Project
+from app.common.schemas.code.code_file_response import CodeFileResponse
+from app.common.schemas.code.code_tree_response import CodeTreeResponse
+from app.common.schemas.code.commit_info_response import CommitInfoResponse
+from app.common.schemas.code.repo_info_response import RepoInfoResponse
+from app.database.models import Project
 from app.src.repositories import code_repository, project_repository
 from app.tools.code_indexer import MAX_FILE_BYTES, git_pull, git_run, reindex_project
+# 路径生命线 9/16 抽到 tools/storage.py 全站共用,这里只是换个本地小名继续用
+from app.tools.storage import jail as _jail
 
 _BINARY_SNIFF_BYTES = 8192
 
@@ -36,25 +38,6 @@ def _require_root(project: Project) -> Path:
     if not root.is_dir():
         raise HTTPException(status_code=404, detail=f"本机目录不存在:{root}")
     return root
-
-
-def _jail(root: Path, rel: str) -> Path:
-    """相对路径 → 磁盘目标,越狱即 400(公网站点读文件的唯一闸门)。
-
-    防四样:绝对路径(F:\ / /etc)、.. 段逃逸、盘符混进相对段、符号链接跳出。
-    顺序必须"先清洗再 resolve 再 is_relative_to" —— resolve 把 .. 和软链都折叠掉,
-    折叠完还在 root 里才算合法(Java 类比:normalize + startsWith,但 normalize 不够,
-    软链要 real path 才能防住)。
-    """
-    rel = (rel or "").replace("\\", "/").strip("/")
-    parts = rel.split("/")
-    if not rel or any(p in ("", ".", "..") for p in parts) or ":" in rel:
-        raise HTTPException(status_code=400, detail="非法路径")
-    root_real = root.resolve()
-    target = (root_real / rel).resolve()
-    if not target.is_relative_to(root_real):
-        raise HTTPException(status_code=400, detail="非法路径")
-    return target
 
 
 async def list_repos(db: AsyncSession) -> list[RepoInfoResponse]:

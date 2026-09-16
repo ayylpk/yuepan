@@ -13,13 +13,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.config.config import API_PREFIX, SESSION_COOKIE, SESSION_TTL_SECONDS
-from app.common.Result.result import Result
-from app.common.schemas.user.LoginRequest import LoginRequest
-from app.common.schemas.user.PasswordUpdate import PasswordUpdate
-from app.common.schemas.user.PrivateUnlock import PrivateUnlock
-from app.common.schemas.user.UsernameUpdate import UsernameUpdate
-from app.database.db import get_db
+from app.common.config.settings import API_PREFIX, SESSION_COOKIE, SESSION_TTL_SECONDS
+from app.common.result.result import Result
+from app.common.schemas.user.login_request import LoginRequest
+from app.common.schemas.user.password_update import PasswordUpdate
+from app.common.schemas.user.private_unlock import PrivateUnlock
+from app.common.schemas.user.username_update import UsernameUpdate
+from app.database.engine import get_db
 from app.src.service import user_service
 from app.tools import session
 

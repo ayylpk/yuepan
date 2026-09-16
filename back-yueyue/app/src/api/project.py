@@ -10,14 +10,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.config.config import API_PREFIX
-from app.common.Result.pageResult import PageResult
-from app.common.schemas.Project.ProjectCreate import ProjectCreate
-from app.common.schemas.Project.ProjectManageResponse import ProjectManageResponse
-from app.common.schemas.Project.ProjectResponse import ProjectResponse
-from app.common.schemas.Project.ProjectUpdate import ProjectUpdate
-from app.common.schemas.Project.TechBind import TechBind
-from app.database.db import get_db
+from app.common.config.settings import API_PREFIX
+from app.common.result.page_result import PageResult
+from app.common.schemas.project.project_create import ProjectCreate
+from app.common.schemas.project.project_manage_response import ProjectManageResponse
+from app.common.schemas.project.project_response import ProjectResponse
+from app.common.schemas.project.project_update import ProjectUpdate
+from app.common.schemas.project.tech_bind import TechBind
+from app.database.engine import get_db
 from app.src.service import project_service
 from app.tools.session import LoginUser
 

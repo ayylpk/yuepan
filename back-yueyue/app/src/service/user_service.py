@@ -9,9 +9,9 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.schemas.user.UserResponse import UserResponse
-from app.common.schemas.user.UserUpdate import UserUpdate
-from app.database.db import User
+from app.common.schemas.user.user_response import UserResponse
+from app.common.schemas.user.user_update import UserUpdate
+from app.database.models import User
 from app.src.repositories import user_repository
 from app.tools.security import hash_password, verify_password
 

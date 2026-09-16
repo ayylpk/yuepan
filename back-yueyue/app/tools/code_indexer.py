@@ -1,4 +1,4 @@
-"""代码索引器(≈ 一次性 batch job):扫本机目录 → files 表整项目重建。
+"""代码索引器(≈ 一次性 batch job):扫本机目录 → code_file_index 表整项目重建。
 
 一个函数两个壳(确定性逻辑用代码,不做成花活):
   CLI  : uv run python -m app.tools.code_indexer --all
@@ -24,7 +24,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.db import AsyncSessionLocal, Project, create_tables
+from app.database.bootstrap import create_tables
+from app.database.engine import AsyncSessionLocal
+from app.database.models import Project
 from app.src.repositories import code_repository, project_repository
 
 MAX_FILE_BYTES = 2 * 1024 * 1024

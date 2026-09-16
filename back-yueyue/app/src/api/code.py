@@ -9,12 +9,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.config.config import API_PREFIX
-from app.common.schemas.Code.CodeFileResponse import CodeFileResponse
-from app.common.schemas.Code.CodeTreeResponse import CodeTreeResponse
-from app.common.schemas.Code.CommitInfoResponse import CommitInfoResponse
-from app.common.schemas.Code.RepoInfoResponse import RepoInfoResponse
-from app.database.db import get_db
+from app.common.config.settings import API_PREFIX
+from app.common.schemas.code.code_file_response import CodeFileResponse
+from app.common.schemas.code.code_tree_response import CodeTreeResponse
+from app.common.schemas.code.commit_info_response import CommitInfoResponse
+from app.common.schemas.code.repo_info_response import RepoInfoResponse
+from app.database.engine import get_db
 from app.src.service import code_service
 from app.tools.session import LoginUser
 

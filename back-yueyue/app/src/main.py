@@ -7,9 +7,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.common.Result.result import Result
-from app.src.api import code, diary, login, project, tech, user
-from app.tools.db import init_db
+from app.common.result.result import Result
+from app.src.api import code, diary, file, login, photo, project, tech, user
+from app.database.bootstrap import init_db
 
 
 @asynccontextmanager
@@ -31,7 +31,9 @@ app.add_middleware(
 
 app.include_router(code.router)
 app.include_router(diary.router)
+app.include_router(file.router)
 app.include_router(login.router)
+app.include_router(photo.router)
 app.include_router(project.router)
 app.include_router(tech.router)
 app.include_router(user.router)

@@ -6,14 +6,11 @@
   2. 修改:白名单外字段进不了 SQL;role 允许改(0↔1 上锁/摆回公开);
   3. 分页:页码(1 起)→ offset 的换算在业务层,不脏 SQL。
 """
-import sqlite3
-
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.schemas.diary.DiaryCreate import DiaryCreate
-from app.common.schemas.diary.DiaryResponse import DiaryResponse
-from app.common.schemas.diary.DiaryUpdate import DiaryUpdate
+from app.common.schemas.diary.diary_response import DiaryResponse
+from app.common.schemas.diary.diary_update import DiaryUpdate
 from app.src.repositories import diary_repository
 
 ROLE_PUBLIC = 0
@@ -28,7 +25,12 @@ async def page_diaries(
     page: int = 1,
     page_size: int = 10,
     role: int = 0,
+    show_private: bool = False,
 ):
+    # 9/16 补漏:未解锁小屋时 role 强制回公开 —— ?role=1 白嫖隐私列表的路堵死
+    # (真源是 session 里的解锁标记,见 api/diary.py 头部注释;photo 同款同治)
+    if not show_private:
+        role = ROLE_PUBLIC
     return await diary_repository.select_page(db, page, page_size, role)
 
 

@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.db import User
+from app.database.models import User
 
 
 async def select_by_id(db: AsyncSession, user_id: int) -> User | None:

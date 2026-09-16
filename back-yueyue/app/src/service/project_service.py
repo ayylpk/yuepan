@@ -9,12 +9,12 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.schemas.Project.ProjectCreate import ProjectCreate
-from app.common.schemas.Project.ProjectManageResponse import ProjectManageResponse
-from app.common.schemas.Project.ProjectResponse import ProjectResponse
-from app.common.schemas.Project.ProjectUpdate import ProjectUpdate
-from app.common.schemas.Project.TechBind import TechBind
-from app.database.db import Project
+from app.common.schemas.project.project_create import ProjectCreate
+from app.common.schemas.project.project_manage_response import ProjectManageResponse
+from app.common.schemas.project.project_response import ProjectResponse
+from app.common.schemas.project.project_update import ProjectUpdate
+from app.common.schemas.project.tech_bind import TechBind
+from app.database.models import Project
 from app.src.repositories import code_repository, project_repository
 from app.src.service import tech_service
 

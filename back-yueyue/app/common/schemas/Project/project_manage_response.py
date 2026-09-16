@@ -9,7 +9,7 @@
 """
 from pydantic import Field
 
-from app.common.schemas.Project.ProjectResponse import ProjectResponse
+from app.common.schemas.project.project_response import ProjectResponse
 
 
 class ProjectManageResponse(ProjectResponse):

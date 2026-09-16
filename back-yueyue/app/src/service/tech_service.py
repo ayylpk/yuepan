@@ -11,10 +11,10 @@ project_service 不许自己 lower(),都调这里,免得两处尺子不一样。
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.schemas.Tech.TechCreate import TechCreate
-from app.common.schemas.Tech.TechResponse import TechResponse
-from app.common.schemas.Tech.TechUpdate import TechUpdate
-from app.database.db import TechStack
+from app.common.schemas.tech.tech_create import TechCreate
+from app.common.schemas.tech.tech_response import TechResponse
+from app.common.schemas.tech.tech_update import TechUpdate
+from app.database.models import TechStack
 from app.src.repositories import tech_repository
 
 

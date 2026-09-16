@@ -107,3 +107,93 @@ Content-Type: application/json
 
 ### 登出(会话销毁,cookie 作废)
 POST http://127.0.0.1:8000/api/auth/logout
+
+### ===== 相册(9/16 落地;上传/删除会真实读写 resources/photo/) =====
+
+### 上传公开照片(先跑上面的 login 拿 cookie;文件路径相对项目根)
+POST http://127.0.0.1:8000/api/photo
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./smoke/sample.png
+--WebAppBoundary
+Content-Disposition: form-data; name="type"
+
+日常
+--WebAppBoundary
+Content-Disposition: form-data; name="role"
+
+0
+--WebAppBoundary--
+
+### 上传隐私照片(role=1:未解锁小屋时列表/详情/出图全按不存在处理)
+POST http://127.0.0.1:8000/api/photo
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./smoke/sample.png
+--WebAppBoundary
+Content-Disposition: form-data; name="role"
+
+1
+--WebAppBoundary--
+
+### 分页相册
+GET http://127.0.0.1:8000/api/photo/page?page=1&page_size=10
+Accept: application/json
+
+### 出图(浏览器打开同 URL 也能看图;id 换成上面返回的)
+GET http://127.0.0.1:8000/api/photo/1/file
+
+### 改分类/上锁下锁(部分字段,同 diary 的 PUT 语义)
+PUT http://127.0.0.1:8000/api/photo/1
+Content-Type: application/json
+
+{
+  "type": "出游",
+  "role": 1
+}
+
+### 删除:库行和 resources/photo/ 里的文件一起消失(删除后去目录确认)
+DELETE http://127.0.0.1:8000/api/photo/1
+
+### ===== 资料库(规则同相册:落盘 resources/file/,挡可执行,下载带原名) =====
+
+### 上传资料
+POST http://127.0.0.1:8000/api/file
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./smoke/sample.png
+--WebAppBoundary
+Content-Disposition: form-data; name="role"
+
+0
+--WebAppBoundary--
+
+### 资料分页
+GET http://127.0.0.1:8000/api/file/page?page=1&page_size=10
+Accept: application/json
+
+### 下载(attachment,文件名用原始名)
+GET http://127.0.0.1:8000/api/file/1/download
+
+### 改展示名
+PUT http://127.0.0.1:8000/api/file/1
+Content-Type: application/json
+
+{
+  "name": "改名后的资料.png"
+}
+
+### 删除:同样库行 + 磁盘双清
+DELETE http://127.0.0.1:8000/api/file/1

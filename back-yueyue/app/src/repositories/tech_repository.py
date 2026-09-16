@@ -2,7 +2,7 @@
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.db import ProjectTech, TechStack
+from app.database.models import ProjectTech, TechStack
 
 
 async def select_by_key(db: AsyncSession, name_key: str) -> TechStack | None:

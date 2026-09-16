@@ -7,12 +7,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.common.config.config import API_PREFIX
-from app.common.Result.pageResult import PageResult
-from app.common.schemas.Tech.TechCreate import TechCreate
-from app.common.schemas.Tech.TechResponse import TechResponse
-from app.common.schemas.Tech.TechUpdate import TechUpdate
-from app.database.db import get_db
+from app.common.config.settings import API_PREFIX
+from app.common.result.page_result import PageResult
+from app.common.schemas.tech.tech_create import TechCreate
+from app.common.schemas.tech.tech_response import TechResponse
+from app.common.schemas.tech.tech_update import TechUpdate
+from app.database.engine import get_db
 from app.src.service import tech_service
 from app.tools.session import LoginUser
 

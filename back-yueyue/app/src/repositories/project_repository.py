@@ -7,7 +7,7 @@ from sqlalchemy import delete as sa_delete
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database.db import Project, ProjectTech, TechStack
+from app.database.models import Project, ProjectTech, TechStack
 
 
 async def select_all(db: AsyncSession) -> list[Project]:
