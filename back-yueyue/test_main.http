@@ -1,0 +1,109 @@
+# 日记三层模板的调用样例(IDEA 里直接点绿色箭头跑)
+
+### 健康检查
+GET http://127.0.0.1:8000/api/health
+Accept: application/json
+
+### 分页查询(role=1 的隐私日记在结果里不可见)
+GET http://127.0.0.1:8000/api/diary/page?page=1&size=10
+Accept: application/json
+
+### 关键字搜索
+GET http://127.0.0.1:8000/api/diary/page?keyword=海
+
+### 新增日记(role 不传默认 0=公开)
+POST http://127.0.0.1:8000/api/diary
+Content-Type: application/json
+
+{
+  "title": "今天试了三层模板",
+  "content": "api→service→repositories,写起来有点 Spring 那味了。",
+  "role": 0
+}
+
+### 查单条
+GET http://127.0.0.1:8000/api/diary/1
+
+### 修改:只改 role → 把 1 号公开日记收进小屋(0=公开 1=隐私)
+PUT http://127.0.0.1:8000/api/diary/1
+Content-Type: application/json
+
+{
+  "role": 1
+}
+
+### 再查一遍列表:1 号应该消失(未解锁时隐私不可见)
+GET http://127.0.0.1:8000/api/diary/page
+
+### 改正文(可带 title/content/role 任意组合)
+PUT http://127.0.0.1:8000/api/diary/2
+Content-Type: application/json
+
+{
+  "content": "补一句:浪比昨天大。",
+  "title": "下午去海里泡了半天(补记)"
+}
+
+### 删除
+DELETE http://127.0.0.1:8000/api/diary/2
+
+### ===== 登录/会话(9/16 新增,IDEA 会自动管理 cookie) =====
+
+### 问登录态(未登录也回 200,logged_in=false)
+GET http://127.0.0.1:8000/api/auth/me
+Accept: application/json
+
+### 登录(默认种子账号 admin/123456)
+POST http://127.0.0.1:8000/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "123456"
+}
+
+### 登录后查资料(需上面的 cookie;password 不出后端)
+GET http://127.0.0.1:8000/api/user/
+
+### 改资料:PATCH 语义,只动传了的字段
+PUT http://127.0.0.1:8000/api/user/
+Content-Type: application/json
+
+{
+  "email": "yueyue@example.com"
+}
+
+### 解锁小屋(私钥默认 123456)→ 之后 /api/diary/page 能看到 role=1
+POST http://127.0.0.1:8000/api/auth/private/unlock
+Content-Type: application/json
+
+{
+  "password": "123456"
+}
+
+### 解锁后翻日记(未解锁时隐私条目不出现)
+GET http://127.0.0.1:8000/api/diary/page
+
+### 手动落锁
+POST http://127.0.0.1:8000/api/auth/private/lock
+
+### 改主密码(先验旧)
+POST http://127.0.0.1:8000/api/auth/password
+Content-Type: application/json
+
+{
+  "old_password": "123456",
+  "new_password": "CHANGE_ME-9527"
+}
+
+### 改用户名(要验当前密码;改完记得改回来)
+POST http://127.0.0.1:8000/api/auth/username
+Content-Type: application/json
+
+{
+  "new_username": "kangzong",
+  "password": "CHANGE_ME-9527"
+}
+
+### 登出(会话销毁,cookie 作废)
+POST http://127.0.0.1:8000/api/auth/logout

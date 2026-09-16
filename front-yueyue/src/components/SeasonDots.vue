@@ -1,0 +1,32 @@
+<script setup lang="ts">
+// 顶栏四季切换器:四枚海色圆点,当前季描白圈
+import { SEASONS, useSeasonStore } from '@/stores/season'
+import type { Season } from '@/stores/season'
+
+const season = useSeasonStore()
+</script>
+
+<template>
+  <div class="season-dots" role="radiogroup" aria-label="切换季节">
+    <button
+      v-for="s in SEASONS" :key="s.key"
+      class="dot" :class="{ active: season.season === s.key }"
+      :style="{ background: s.dot, color: s.dot }"
+      :title="`${s.label}季皮肤(图未上线时仅换配色)`"
+      role="radio" :aria-checked="season.season === s.key"
+      @click="season.set(s.key as Season)"
+    />
+  </div>
+</template>
+
+<style scoped>
+.season-dots { display: flex; gap: 8px; }
+.dot {
+  width: 14px; height: 14px;
+  border-radius: 50%; border: none; cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+}
+.dot:hover { transform: scale(1.25); }
+.dot.active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px currentColor; transform: scale(1.15); }
+</style>

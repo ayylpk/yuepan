@@ -1,0 +1,188 @@
+/* ============================================================
+   月畔小站 全局样式
+   色值来源:9/16 用 Pillow 对整站 AI 图实测采样(sample-palette.py),
+   除标注"推导"的外都不是肉眼取的。四季皮肤只换 CSS 变量,不换构图。
+   ============================================================ */
+
+/* ---------- Summer Coast 基础 tokens(默认=夏) ---------- */
+:root {
+  /* 采样色 */
+  --sky: #72d0fc;          /* login.png 天空 */
+  --sea-deep: #35a2ee;     /* login.png 远海 */
+  --sea-mid: #3fbce7;      /* login.png 中层海(主色) */
+  --sea-light: #41c8e7;    /* login.png 浅滩 */
+  --foam: #49d2e7;         /* login.png 浪线 */
+  --sand: #fbf1e5;         /* login.png 沙滩 */
+  --brand: #1991f8;        /* page404.png 天空蓝(强调) */
+  --cloud: #cbe8fc;        /* page404.png 云白 */
+  --private-glow: #77fbfc; /* banner-private.png 洞穴霓虹青 */
+  --private-warm: #947d65; /* banner-private.png 暖灯光 */
+
+  /* 推导色:亮色系里没有可当正文的深色,文字锚按海平线夜色压暗 */
+  --ink: #0e3a5c;
+  --ink-soft: #4a6a82;
+
+  /* 表面与结构 */
+  --bg-page: #f2fafe;
+  --card: #ffffff;
+  --line: #dcf0fb;
+  --shadow: 0 10px 30px -12px rgba(20, 90, 140, 0.25);
+
+  /* 字体:本地站不引 webfont,中文靠系统栈,英文小帽用字距撑性格 */
+  --font-sans: system-ui, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', Consolas, 'Courier New', monospace;
+
+  /* TDesign 主色映射到站内蓝 */
+  --td-brand-color: var(--brand);
+  --td-brand-color-hover: #3ba3f5;
+  --td-brand-color-active: #0d77d3;
+  --td-radius-default: 12px;
+  --td-font-family: var(--font-sans);
+}
+
+/* ---------- 四季皮肤:目前只有夏的实拍图,其余三季色板是先导占位,
+   等用户点图后按同构图重采样(取图逻辑在 stores/season.ts 的 asset()) ---------- */
+html[data-season='spring'] {
+  --sea-deep: #4aa88e; --sea-mid: #6cc298; --sea-light: #8fd6a4; --foam: #b8e6b0;
+  --brand: #2fa06d; --sky: #bfe8cf; --cloud: #e6f6e9; --bg-page: #f3fbf3; --ink: #17452f; --ink-soft: #4d6f5d;
+}
+html[data-season='autumn'] {
+  --sea-deep: #b4653a; --sea-mid: #d08a4e; --sea-light: #e4b26e; --foam: #f0d29a;
+  --brand: #c8642e; --sky: #f2c894; --cloud: #f8e8d0; --bg-page: #fbf4ea; --ink: #50301c; --ink-soft: #8a6a52;
+}
+html[data-season='winter'] {
+  --sea-deep: #5d87b8; --sea-mid: #86a9d0; --sea-light: #aecbe8; --foam: #d8eaf8;
+  --brand: #3e6f9e; --sky: #cfe3f5; --cloud: #eaf3fb; --bg-page: #f4f8fc; --ink: #274058; --ink-soft: #5f7688;
+}
+
+/* ---------- 基础 ---------- */
+* { box-sizing: border-box; }
+
+html, body, #app { margin: 0; min-height: 100vh; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--ink);
+  background: var(--bg-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* 键盘可达性:全站统一焦点环 */
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection { background: var(--foam); color: var(--ink); }
+
+/* ---------- 公用版式零件 ---------- */
+
+/* 小帽:页面英文副标,宽字距全大写 */
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--sea-deep);
+  font-weight: 600;
+}
+
+/* 英雄横幅:每页顶部全幅主图 */
+.page-hero {
+  position: relative;
+  height: min(42vh, 340px);
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+.page-hero > img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+}
+.page-hero .hero-caption {
+  position: relative; z-index: 1;
+  padding: 28px clamp(20px, 6vw, 72px) 22px;
+  width: 100%;
+  /* 底部压一条深海渐变,保证白字在任何构图上都读得清 */
+  background: linear-gradient(to top, rgba(14, 58, 92, 0.62), rgba(14, 58, 92, 0) 90%);
+}
+.page-hero .hero-title {
+  margin: 2px 0 0;
+  font-size: clamp(26px, 4vw, 40px);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.06em;
+  text-shadow: 0 2px 14px rgba(8, 40, 66, 0.45);
+}
+.page-hero .hero-caption .eyebrow { color: var(--cloud); }
+
+/* 内容容器 */
+.site-main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px clamp(16px, 4vw, 32px) 64px;
+}
+
+/* 玻璃卡片(首页五入口等) */
+.glass-card {
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.glass-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 40px -14px rgba(20, 90, 140, 0.35);
+}
+
+/* markdown 渲染区(笔记正文共用) */
+.md-body { line-height: 1.75; font-size: 16px; color: var(--ink); }
+.md-body h1, .md-body h2, .md-body h3 { line-height: 1.4; margin: 1.4em 0 0.6em; }
+.md-body h1 { font-size: 1.55em; border-bottom: 1px solid var(--line); padding-bottom: 0.35em; }
+.md-body h2 { font-size: 1.3em; }
+.md-body p { margin: 0.8em 0; }
+.md-body img { max-width: 100%; border-radius: 12px; }
+.md-body blockquote {
+  margin: 1em 0; padding: 0.4em 1em;
+  border-left: 3px solid var(--foam);
+  background: color-mix(in srgb, var(--cloud) 30%, transparent);
+  color: var(--ink-soft); border-radius: 0 10px 10px 0;
+}
+.md-body code {
+  font-family: var(--font-mono); font-size: 0.92em;
+  background: #eef7fd; color: #0b5c8f;
+  padding: 2px 6px; border-radius: 6px;
+}
+.md-body pre {
+  background: #0e2c42; border-radius: 12px;
+  padding: 16px; overflow-x: auto;
+}
+.md-body pre code { background: none; padding: 0; color: inherit; }
+.md-body table { border-collapse: collapse; margin: 1em 0; }
+.md-body th, .md-body td { border: 1px solid var(--line); padding: 6px 12px; }
+.md-body th { background: #e8f5fd; }
+.md-body ul, .md-body ol { padding-left: 1.4em; }
+.md-body a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
+
+/* 空态插画 */
+.empty-state { text-align: center; padding: 56px 16px; color: var(--ink-soft); }
+.empty-state img { width: 120px; opacity: 0.9; }
+.empty-state p { margin-top: 12px; }
+
+/* ---------- 页面切换动效:一次轻潮汐,不搞满屏花活 ---------- */
+.page-fade-enter-active { transition: opacity 0.22s ease, transform 0.22s ease; }
+.page-fade-enter-from { opacity: 0; transform: translateY(10px); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

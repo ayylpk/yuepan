@@ -1,0 +1,26 @@
+# —— 依赖与构建产物 ——
+node_modules/
+dist/
+.venv/
+__pycache__/
+*.pyc
+
+# —— 本地运行数据(含 admin 密码哈希,永远不进库)——
+*.db
+*.db-journal
+*.sqlite*
+
+# —— 密钥类(现在没有,防以后手滑)——
+*.key
+*.pem
+.env.production
+.env.local
+
+# —— 编辑器/系统杂物 ——
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
+
+# —— 19MB 四季原图:本地留底,仓库只放压缩后的正式图 ——
+front-yueyue/src/assets/_originals/
