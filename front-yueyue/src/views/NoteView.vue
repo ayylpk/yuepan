@@ -90,26 +90,26 @@ watch(() => route.params.id, load)
   <div class="site-main note-page">
     <t-loading :loading="loading">
       <template v-if="diary || editing">
-        <div class="note-head">
-          <div>
+        <div class="note-top">
+          <header class="page-head">
             <h2>{{ editing ? (isNew ? '新日记' : '编辑中') : form.title }}</h2>
             <p v-if="!editing" class="note-meta">
               <span>{{ diary?.created_at.slice(0, 16) }}</span>
               <span v-if="diary && diary.updated_at !== diary.created_at">改于 {{ diary.updated_at.slice(0, 16) }}</span>
-              <span v-if="form.private" class="tag private">🔒 小屋</span>
+              <span v-if="form.private" class="tag private">收在小屋</span>
             </p>
-          </div>
+          </header>
           <div class="actions">
             <t-button v-if="!editing" theme="primary" variant="outline" @click="editing = true">编辑</t-button>
             <t-button v-if="!editing && !isNew" theme="danger" variant="text" @click="confirmDelete">删除</t-button>
             <t-button v-if="editing" theme="primary" :loading="saving" @click="save">保存</t-button>
             <t-button v-if="editing && !isNew" variant="outline" @click="load">取消</t-button>
-            <t-button variant="text" @click="router.push('/notes')">← 回列表</t-button>
+            <t-button variant="text" @click="router.push('/notes')">回列表</t-button>
           </div>
         </div>
 
-        <!-- 查看态 -->
-        <MarkdownView v-if="!editing && diary" :content="diary.content" />
+        <!-- 查看态:68ch 书籍栏,长行不累眼 -->
+        <MarkdownView v-if="!editing && diary" :content="diary.content" class="note-read" />
 
         <!-- 编辑态 -->
         <div v-else class="edit-form">
@@ -131,16 +131,23 @@ watch(() => route.params.id, load)
 
 <style scoped>
 .note-page { padding-top: 36px; }
-.note-head {
+/* 标题吃全局 .page-head 锁版(楷体);动作按钮与标题同排右挂 */
+.note-top {
   display: flex; justify-content: space-between; align-items: flex-start;
   gap: 16px; flex-wrap: wrap; margin-bottom: 18px;
+  animation: copy-rise 0.7s 0.05s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
 }
-.note-head h2 { margin: 0 0 6px; font-size: 26px; color: var(--ink); }
-.note-meta { margin: 0; display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); }
+.note-top .page-head { margin-bottom: 0; }
+.note-meta { margin: 6px 0 0; display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--ink-soft); }
 .tag { color: var(--sea-deep); }
 .tag.private { color: var(--private-warm); }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; }
-.edit-form { display: flex; flex-direction: column; gap: 14px; }
+/* 阅读栏:68ch 书籍列;动线比标题晚一拍 */
+.note-read { max-width: 68ch; animation: copy-rise 0.7s 0.18s cubic-bezier(0.22, 0.61, 0.36, 1) backwards; }
+.edit-form {
+  display: flex; flex-direction: column; gap: 14px; max-width: 84ch;
+  animation: copy-rise 0.7s 0.18s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+}
 .edit-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .private-switch { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); }
 </style>

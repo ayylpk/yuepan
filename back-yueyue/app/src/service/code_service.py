@@ -20,8 +20,9 @@ from app.common.schemas.code.repo_info_response import RepoInfoResponse
 from app.database.models import Project
 from app.src.repositories import code_repository, project_repository
 from app.tools.code_indexer import MAX_FILE_BYTES, git_pull, git_run, reindex_project
-# 路径生命线 9/16 抽到 tools/storage.py 全站共用,这里只是换个本地小名继续用
-from app.tools.storage import jail as _jail
+# 路径生命线 9/16 抽到 tools/storage.py 全站共用,这里只是换个本地小名继续用;
+# repo_root:DB 相对路径 → 本机仓库目录(9/17 起 project.path 也只存相对)
+from app.tools.storage import jail as _jail, repo_root as _repo_root
 
 _BINARY_SNIFF_BYTES = 8192
 
@@ -34,7 +35,7 @@ async def _require_project(db: AsyncSession, repo: str) -> Project:
 
 
 def _require_root(project: Project) -> Path:
-    root = Path(project.path)
+    root = _repo_root(project.path)
     if not root.is_dir():
         raise HTTPException(status_code=404, detail=f"本机目录不存在:{root}")
     return root
@@ -44,7 +45,7 @@ async def list_repos(db: AsyncSession) -> list[RepoInfoResponse]:
     """白名单投影:path 非空的项目;branch/last_commit 现场问 git(仓库数量小,够用)。"""
     out: list[RepoInfoResponse] = []
     for p in await project_repository.select_all_with_path(db):
-        root = Path(p.path)
+        root = _repo_root(p.path)
         exists = root.is_dir()
         out.append(
             RepoInfoResponse(
@@ -68,7 +69,7 @@ async def get_tree(db: AsyncSession, repo: str) -> CodeTreeResponse:
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc))
         rows = await code_repository.select_paths(db, project.id)
-    root = Path(project.path)
+    root = _repo_root(project.path)
     branch = (git_run(root, "rev-parse", "--abbrev-ref", "HEAD") or "").strip()
     files = [r.path for r in rows]
     return CodeTreeResponse(branch=branch, count=len(files), files=files)

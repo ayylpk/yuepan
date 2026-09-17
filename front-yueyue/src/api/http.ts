@@ -50,7 +50,7 @@ export const http = {
   del: <T>(path: string) => request<T>('DELETE', path),
 }
 
-/** multipart 上传专用(video 表单不套 JSON) */
+/** multipart 上传专用(photo 上传的表单不套 JSON) */
 export async function postForm<T>(path: string, form: FormData): Promise<T> {
   const res = await fetch(path, { method: 'POST', body: form })
   if (!res.ok) {

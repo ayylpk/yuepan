@@ -4,6 +4,7 @@
 9/16 结构整理:原来叫 config/config.py(包名撞文件名),改名 settings.py
 (Django/FastAPI 社区惯例,≈ Spring 的 application.properties)。
 """
+import os
 from pathlib import Path
 
 # settings.py 位于 app/common/config/:parents[2] 是 app/,parents[3] 是项目根
@@ -13,6 +14,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 # 9/16 之前真库埋在 app/database/resources/、根目录还摆着几个空壳目录,双真相源是
 # 目录混乱的源头,现在全部归拢到这一棵树下(路径口径:相对 resources/ 的正斜杠路径)。
 RESOURCES_DIR = PROJECT_ROOT / "resources"
+
+# "在线看代码"挂载仓库的根目录(9/17 口径统一:project.path 起这天后入库只存
+# 相对这里的相对路径,如 "yueyue/front-yueyue" —— 和照片相对 resources/ 同一姿势)。
+# 换机器/挪仓库存放地:改这一行(或设环境变量 REPOS_DIR),DB 里的行一行都不用动。
+REPOS_DIR = Path(os.getenv("REPOS_DIR", "F:/code/project"))
 
 # 所有接口的公共前缀
 API_PREFIX = "/api"

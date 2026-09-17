@@ -195,7 +195,7 @@ onMounted(() => {
         <label><span>简介</span><t-textarea v-model="form.description" placeholder="一两句,展示在项目墙卡片上" :autosize="{ minRows: 2, maxRows: 4 }" /></label>
         <label>
           <span>本机目录</span>
-          <t-input v-model="form.path" placeholder="F:\code\project\… 留空=不挂代码(公网接口不会回传这个字段)" />
+          <t-input v-model="form.path" placeholder="相对仓库根目录,如 yueyue/front-yueyue;留空=不挂代码(公网接口不会回传这个字段)" />
         </label>
         <label><span>仓库名</span><t-input v-model="form.repo" placeholder="代码页 chip 显示名,留空用项目名" /></label>
         <label v-if="!isEdit()">

@@ -65,7 +65,10 @@ async function logout() {
 
 <template>
   <div class="site-main settings">
-    <h1 class="page-title">设置<em>SETTINGS</em></h1>
+    <header class="page-head">
+      <h2>设置</h2>
+      <p class="en">settings</p>
+    </header>
 
     <div class="set-grid">
       <section class="glass-card set-card">
@@ -97,7 +100,10 @@ async function logout() {
     </div>
 
     <!-- 站点内容管理:本页在路由登录闸门之后,能站在这的就是自己人 -->
-    <h1 class="page-title admin-title">站点管理<em>ADMIN</em></h1>
+    <header class="page-head admin-title">
+      <h2>站点管理</h2>
+      <p class="en">admin</p>
+    </header>
     <div class="admin-stack">
       <ProjectManager />
       <TechManager />
@@ -107,10 +113,8 @@ async function logout() {
 
 <style scoped>
 .settings { padding-top: 36px; }
-.page-title { margin: 0 0 22px; font-size: 28px; color: var(--ink); display: flex; align-items: baseline; gap: 12px; }
-.page-title em { font-style: normal; font-size: 11px; letter-spacing: 0.3em; color: var(--sea-deep); }
 .set-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.admin-title { margin-top: 40px; }
+.admin-title { margin-top: 44px; }
 .admin-stack { display: grid; gap: 18px; }
 .set-card { padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .set-card h2 { margin: 0; font-size: 17px; color: var(--ink); }

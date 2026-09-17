@@ -1,7 +1,9 @@
 /* ============================================================
-   月畔小站 全局样式
+   月畔小站 全局样式(9/17 重塑 v2)
    色值来源:9/16 用 Pillow 对整站 AI 图实测采样(sample-palette.py),
-   除标注"推导"的外都不是肉眼取的。四季皮肤只换 CSS 变量,不换构图。
+   除标注"推导"的外都不是肉眼取的。四季皮肤只换 CSS 变量,不换构图;
+   换季瞬间给 html 挂 .season-morph 短过渡(见 stores/season.ts),
+   变量本身不可过渡,靠这条 600ms 的类遮掉硬切感。
    ============================================================ */
 
 /* ---------- Summer Coast 基础 tokens(默认=夏) ---------- */
@@ -15,8 +17,8 @@
   --sand: #fbf1e5;         /* login.png 沙滩 */
   --brand: #1991f8;        /* page404.png 天空蓝(强调) */
   --cloud: #cbe8fc;        /* page404.png 云白 */
-  --private-glow: #77fbfc; /* banner-private.png 洞穴霓虹青 */
-  --private-warm: #947d65; /* banner-private.png 暖灯光 */
+  --private-glow: #77fbfc; /* banner-private.png 洞穴霓虹青(场景专属色,不随季) */
+  --private-warm: #947d65; /* banner-private.png 暖灯光(同上) */
 
   /* 推导色:亮色系里没有可当正文的深色,文字锚按海平线夜色压暗 */
   --ink: #0e3a5c;
@@ -27,10 +29,15 @@
   --card: #ffffff;
   --line: #dcf0fb;
   --shadow: 0 10px 30px -12px rgba(20, 90, 140, 0.25);
+  --scrim: rgba(9, 42, 68, 0.66); /* 舞台标题压底渐层的深色端(每季一档) */
+  --header-h: 64px;
 
-  /* 字体:本地站不引 webfont,中文靠系统栈,英文小帽用字距撑性格 */
+  /* 字体:本地站不引 webfont。楷体做大字标题(配动漫风景有"海边手写信"气质),
+     英文伴行小字走 Georgia 衬线;正文保持系统无衬线栈。 */
   --font-sans: system-ui, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'JetBrains Mono', Consolas, 'Courier New', monospace;
+  --font-display: 'KaiTi', 'STKaiti', 'Kaiti SC', 'BiauKai', 'DFKai-SB', serif;
+  --font-serif: Georgia, 'Times New Roman', 'Songti SC', serif;
 
   /* TDesign 主色映射到站内蓝 */
   --td-brand-color: var(--brand);
@@ -40,19 +47,32 @@
   --td-font-family: var(--font-sans);
 }
 
-/* ---------- 四季皮肤:目前只有夏的实拍图,其余三季色板是先导占位,
-   等用户点图后按同构图重采样(取图逻辑在 stores/season.ts 的 asset()) ---------- */
+/* ---------- 四季皮肤:每季补全同一键集(9/16 旧版漏了 card/line/shadow,
+   秋天页面还挂着夏日浅蓝边框,这次一并补齐)。春/冬图未出,点击暂不启用,
+   色板先行(见 season.ts 的 SEASONS_IMAGE_READY) ---------- */
 html[data-season='spring'] {
   --sea-deep: #4aa88e; --sea-mid: #6cc298; --sea-light: #8fd6a4; --foam: #b8e6b0;
-  --brand: #2fa06d; --sky: #bfe8cf; --cloud: #e6f6e9; --bg-page: #f3fbf3; --ink: #17452f; --ink-soft: #4d6f5d;
+  --brand: #2fa06d; --sky: #bfe8cf; --cloud: #e6f6e9; --sand: #f7f3e3;
+  --bg-page: #f3fbf3; --ink: #17452f; --ink-soft: #4d6f5d;
+  --card: #fdfff9; --line: #dcefdc;
+  --shadow: 0 10px 30px -12px rgba(40, 100, 66, 0.24);
+  --scrim: rgba(16, 56, 36, 0.62);
 }
 html[data-season='autumn'] {
   --sea-deep: #b4653a; --sea-mid: #d08a4e; --sea-light: #e4b26e; --foam: #f0d29a;
-  --brand: #c8642e; --sky: #f2c894; --cloud: #f8e8d0; --bg-page: #fbf4ea; --ink: #50301c; --ink-soft: #8a6a52;
+  --brand: #c8642e; --sky: #f2c894; --cloud: #f8e8d0; --sand: #faf0dd;
+  --bg-page: #fbf4ea; --ink: #50301c; --ink-soft: #8a6a52;
+  --card: #fffdf9; --line: #f0e2cc;
+  --shadow: 0 10px 30px -12px rgba(130, 74, 22, 0.26);
+  --scrim: rgba(66, 32, 8, 0.64);
 }
 html[data-season='winter'] {
   --sea-deep: #5d87b8; --sea-mid: #86a9d0; --sea-light: #aecbe8; --foam: #d8eaf8;
-  --brand: #3e6f9e; --sky: #cfe3f5; --cloud: #eaf3fb; --bg-page: #f4f8fc; --ink: #274058; --ink-soft: #5f7688;
+  --brand: #3e6f9e; --sky: #cfe3f5; --cloud: #eaf3fb; --sand: #f0eee6;
+  --bg-page: #f4f8fc; --ink: #274058; --ink-soft: #5f7688;
+  --card: #ffffff; --line: #dde9f4;
+  --shadow: 0 10px 30px -12px rgba(50, 84, 120, 0.26);
+  --scrim: rgba(16, 36, 58, 0.66);
 }
 
 /* ---------- 基础 ---------- */
@@ -78,46 +98,16 @@ a { color: inherit; text-decoration: none; }
 
 ::selection { background: var(--foam); color: var(--ink); }
 
+/* ---------- 换季溶解:仅挂类的 650ms 内存在,让"不可过渡的变量"所在表面软着陆 ---------- */
+html.season-morph body,
+html.season-morph .glass-card,
+html.season-morph .site-header,
+html.season-morph .site-footer,
+html.season-morph .page-floor {
+  transition: background-color 0.55s ease, border-color 0.55s ease, color 0.55s ease, box-shadow 0.55s ease;
+}
+
 /* ---------- 公用版式零件 ---------- */
-
-/* 小帽:页面英文副标,宽字距全大写 */
-.eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: var(--sea-deep);
-  font-weight: 600;
-}
-
-/* 英雄横幅:每页顶部全幅主图 */
-.page-hero {
-  position: relative;
-  height: min(42vh, 340px);
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-}
-.page-hero > img {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover;
-}
-.page-hero .hero-caption {
-  position: relative; z-index: 1;
-  padding: 28px clamp(20px, 6vw, 72px) 22px;
-  width: 100%;
-  /* 底部压一条深海渐变,保证白字在任何构图上都读得清 */
-  background: linear-gradient(to top, rgba(14, 58, 92, 0.62), rgba(14, 58, 92, 0) 90%);
-}
-.page-hero .hero-title {
-  margin: 2px 0 0;
-  font-size: clamp(26px, 4vw, 40px);
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: 0.06em;
-  text-shadow: 0 2px 14px rgba(8, 40, 66, 0.45);
-}
-.page-hero .hero-caption .eyebrow { color: var(--cloud); }
 
 /* 内容容器 */
 .site-main {
@@ -126,24 +116,104 @@ a { color: inherit; text-decoration: none; }
   padding: 28px clamp(16px, 4vw, 32px) 64px;
 }
 
-/* 玻璃卡片(首页五入口等) */
-.glass-card {
-  background: color-mix(in srgb, var(--card) 82%, transparent);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.glass-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px -14px rgba(20, 90, 140, 0.35);
+/* 舞台之下、正文之上的"地板"带:抬边压住舞台缝,第一屏内容露出一角作钩子 */
+.page-floor {
+  position: relative;
+  z-index: 2;
+  margin-top: clamp(-96px, -9vh, -56px);
+  padding-top: 40px;
+  background: var(--bg-page);
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -16px 36px -22px rgba(8, 32, 52, 0.35);
 }
 
-/* markdown 渲染区(笔记正文共用) */
+/* 整屏独立页(登录/404/小屋)三页共用骨架:
+   img 层吃 v-img-fade 换季溶解 + full-zoom 入场缓推,scrim 配方与 StageHero 同源 */
+.full-stage {
+  position: relative;
+  min-height: 100svh;
+  display: flex; align-items: center; justify-content: center;
+  padding: clamp(16px, 5vw, 48px);
+  overflow: hidden; isolation: isolate;
+  background: var(--sea-deep);
+}
+.full-stage__bg {
+  position: absolute; inset: 0; z-index: -2;
+  width: 100%; height: 100%; object-fit: cover;
+  animation: full-zoom 1.6s ease-out backwards;
+}
+.full-stage__scrim {
+  position: absolute; inset: 0; z-index: -1;
+  background:
+    linear-gradient(to bottom, rgba(6, 30, 48, 0.28), transparent 24%),
+    linear-gradient(to top, var(--scrim), transparent 60%);
+}
+@keyframes full-zoom { from { transform: scale(1.02); } to { transform: none; } }
+
+/* 无舞台页(设置/笔记详情)的小标题锁版。
+   纯锁版不带容器 padding——页面已在 .site-main 里,顶栏让位也吃了 .site-body 的 padding-top */
+.page-head { margin: 0 0 24px; }
+.page-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(28px, 4.4vw, 40px);
+  letter-spacing: 0.12em;
+}
+.page-head .en {
+  margin: 4px 0 0;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+}
+
+/* 玻璃卡片(表面配方;hover 反馈归各交互卡自己管,不搞全局齐抬) */
+.glass-card {
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* 入场编排工具:容器挂 .stagger,子项按 --i 错峰上浮(60ms 一档)。
+   填充用 backwards 而非 both:both 会把终态永久握在动画层,压死卡片的 hover transform */
+.stagger > * {
+  animation: rise-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  animation-delay: calc(var(--rise-base, 0ms) + var(--i, 0) * 60ms);
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* 首页粼光漂动(签名动效,HomeView 与换季溶解共用) */
+@keyframes drift {
+  from { transform: translateX(-3.5%) scale(1); opacity: 0.85; }
+  to   { transform: translateX(3.5%) scale(1.08); opacity: 1; }
+}
+
+/* 标题锁版错峰入场(StageHero 与首页 slot 共用) */
+@keyframes copy-rise {
+  from { opacity: 0; transform: translateY(22px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---------- 页转场(App 顶层与 SiteLayout 内层共用一套 route-* 类) ---------- */
+.route-enter-active { transition: opacity 0.26s ease, transform 0.26s ease; }
+.route-enter-from   { opacity: 0; transform: translateY(12px); }
+.route-leave-active { transition: opacity 0.16s ease; }
+.route-leave-to     { opacity: 0; }
+
+/* ---------- markdown 渲染区(笔记正文共用) ---------- */
 .md-body { line-height: 1.75; font-size: 16px; color: var(--ink); }
-.md-body h1, .md-body h2, .md-body h3 { line-height: 1.4; margin: 1.4em 0 0.6em; }
+.md-body h1, .md-body h2, .md-body h3 {
+  line-height: 1.4; margin: 1.4em 0 0.6em;
+  font-family: var(--font-display); font-weight: 400; letter-spacing: 0.06em;
+}
 .md-body h1 { font-size: 1.55em; border-bottom: 1px solid var(--line); padding-bottom: 0.35em; }
 .md-body h2 { font-size: 1.3em; }
 .md-body p { margin: 0.8em 0; }
@@ -156,28 +226,24 @@ a { color: inherit; text-decoration: none; }
 }
 .md-body code {
   font-family: var(--font-mono); font-size: 0.92em;
-  background: #eef7fd; color: #0b5c8f;
+  background: color-mix(in srgb, var(--cloud) 45%, var(--card)); color: var(--sea-deep);
   padding: 2px 6px; border-radius: 6px;
 }
 .md-body pre {
-  background: #0e2c42; border-radius: 12px;
+  background: #1e1e1e; border-radius: 12px; /* 和代码页同一家 VSCode 默认底 */
   padding: 16px; overflow-x: auto;
 }
 .md-body pre code { background: none; padding: 0; color: inherit; }
 .md-body table { border-collapse: collapse; margin: 1em 0; }
 .md-body th, .md-body td { border: 1px solid var(--line); padding: 6px 12px; }
-.md-body th { background: #e8f5fd; }
+.md-body th { background: color-mix(in srgb, var(--cloud) 55%, var(--card)); }
 .md-body ul, .md-body ol { padding-left: 1.4em; }
 .md-body a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }
 
 /* 空态插画 */
 .empty-state { text-align: center; padding: 56px 16px; color: var(--ink-soft); }
-.empty-state img { width: 120px; opacity: 0.9; }
+.empty-state img { width: 120px; opacity: 0.9; border-radius: 14px; }
 .empty-state p { margin-top: 12px; }
-
-/* ---------- 页面切换动效:一次轻潮汐,不搞满屏花活 ---------- */
-.page-fade-enter-active { transition: opacity 0.22s ease, transform 0.22s ease; }
-.page-fade-enter-from { opacity: 0; transform: translateY(10px); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

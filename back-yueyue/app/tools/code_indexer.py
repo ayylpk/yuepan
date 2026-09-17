@@ -28,6 +28,8 @@ from app.database.bootstrap import create_tables
 from app.database.engine import AsyncSessionLocal
 from app.database.models import Project
 from app.src.repositories import code_repository, project_repository
+# DB 相对路径 → 本机仓库目录(9/17 起 project.path 只存相对,读口统一走这)
+from app.tools.storage import repo_root as _repo_root
 
 MAX_FILE_BYTES = 2 * 1024 * 1024
 
@@ -128,7 +130,7 @@ def walk_files(root: Path) -> list[str]:
 
 async def reindex_project(db: AsyncSession, project: Project) -> int:
     """整项目重建索引,返回条数。目录不存在抛 ValueError(api 层翻译成 400)。"""
-    root = Path(project.path) if project.path else None
+    root = _repo_root(project.path) if project.path else None
     if root is None or not root.is_dir():
         raise ValueError(f"本机目录不存在:{project.path or '(未填 path)'}")
     git = git_files(root)
@@ -159,7 +161,7 @@ async def _cli(args: argparse.Namespace) -> None:
                 print(f"[x] 项目 id={args.project} 不存在")
                 return
             if args.pull:
-                ok, msg = git_pull(Path(project.path))
+                ok, msg = git_pull(_repo_root(project.path))
                 print(f"{'[ok]' if ok else '[x]'} git pull: {msg}")
             try:
                 print(f"[ok] 重建索引 {await reindex_project(db, project)} 个文件")

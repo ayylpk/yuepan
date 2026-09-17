@@ -40,7 +40,7 @@ async def create_file_api(
     file: UploadFile = FormFile(..., description="资料文件(pdf/zip/图片…可执行除外)"),
     role: int = Form(0, ge=0, le=1, description="0=公开 1=隐私"),
 ):
-    """上传资料:落盘 resources/file/ + 插行,展示名取原始文件名(规则在 service)。"""
+    """上传资料:落盘 resources/file/ + 插行;原名直接上盘,撞名自动 "(N)" 避让(规则在 service)。"""
     return await file_service.create_file(db, file, role)
 
 
@@ -53,6 +53,12 @@ async def get_file_api(file_id: int, db: Db, show_private: ShowPrivate):
 async def download_file_api(file_id: int, db: Db, show_private: ShowPrivate):
     """下载:attachment + 原始文件名(a 标签 href 直接吃,cookie 自动带)。"""
     return await file_service.download_file(db, file_id, show_private)
+
+
+@router.get("/{file_id}/raw")
+async def raw_file_api(file_id: int, db: Db, show_private: ShowPrivate):
+    """直览(inline):图片/文本代码/pdf 的内嵌读口;其余类型 400 引导走下载。"""
+    return await file_service.raw_file(db, file_id, show_private)
 
 
 @router.put("/{file_id}", response_model=FileInfoResponse)

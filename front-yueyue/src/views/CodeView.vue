@@ -2,15 +2,16 @@
 // 在线看代码:白名单仓库 + git ls-files 平铺路径 → 客户端拼树。
 // 后端 /api/code/repos|tree|file|log 已实现;pull/reindex 两个写接口要登录,
 // 按钮只对登录用户可见(路由闸门兜底,这里 v-if 只是防 OFFLINE 之外的边角)。
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import hljs from 'highlight.js'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { ApiError, http } from '@/api/http'
 import type { RepoInfo, CommitInfo } from '@/api/types'
 import { asset } from '@/stores/season'
 import { useAuthStore } from '@/stores/auth'
-import PageHero from '@/components/PageHero.vue'
+import { langOf } from '@/utils/code'
+import CodePane from '@/components/CodePane.vue'
+import StageHero from '@/components/StageHero.vue'
 import FileTree, { type TreeNode } from '@/components/FileTree.vue'
 
 interface RepoTree { branch: string; count: number; files: string[] }
@@ -24,15 +25,11 @@ const tab = ref<'files' | 'log'>('files')
 const tree = ref<TreeNode | null>(null)
 const commits = ref<CommitInfo[]>([])
 const filePath = ref('')
-const fileContent = ref<HTMLElement | null>(null)
+const fileText = ref('')
 const error = ref('')
 const busy = ref(false)
 
-const LANG_BY_EXT: Record<string, string> = {
-  ts: 'typescript', js: 'javascript', vue: 'xml', json: 'json', py: 'python',
-  java: 'java', css: 'css', scss: 'scss', html: 'xml', md: 'markdown',
-  yml: 'yaml', yaml: 'yaml', xml: 'xml', sql: 'sql', sh: 'bash', rs: 'rust', go: 'go',
-}
+const codeLang = computed(() => langOf(filePath.value || undefined))
 
 /** 平铺路径列表 → 嵌套树(目录在前文件在后,各自按名排序) */
 function buildTree(files: string[]): TreeNode {
@@ -85,7 +82,7 @@ async function openFile(path: string) {
   busy.value = true
   try {
     const f = await http.get<CodeFile>(`/api/code/file?repo=${encodeURIComponent(current.value)}&path=${encodeURIComponent(path)}`)
-    await paintCode(path, f.content)
+    fileText.value = f.content // CodePane 盯 content 变化重画(行号+高亮都在那口)
   } catch (e) {
     error.value = e instanceof Error ? e.message : '读文件失败'
   } finally {
@@ -112,26 +109,6 @@ async function sync(kind: 'pull' | 'reindex') {
   }
 }
 
-async function paintCode(path: string, content: string) {
-  const el = fileContent.value
-  if (!el) return
-  const ext = path.split('.').pop()?.toLowerCase() ?? ''
-  const lang = LANG_BY_EXT[ext]
-  el.textContent = ''
-  const pre = document.createElement('pre')
-  const code = document.createElement('code')
-  if (lang) {
-    code.className = `language-${lang}`
-    code.textContent = content
-    pre.appendChild(code)
-    el.appendChild(pre)
-    hljs.highlightElement(code) // 用 hljs 高亮,而不是 innerHTML 拼(避免注入面)
-  } else {
-    pre.textContent = content // 认不出的语言纯文本兜底
-    el.appendChild(pre)
-  }
-}
-
 onMounted(async () => {
   try {
     repos.value = await http.get<RepoInfo[]>('/api/code/repos')
@@ -150,17 +127,20 @@ watch(() => route.query.repo, async (q) => {
 
 <template>
   <div>
-    <PageHero :img="asset('banner-code')" eyebrow="CODE" title="在线看代码">
-      <p class="hero-sub">白名单仓库 · 树来自 git 清单,内容读的是本机工作区</p>
-    </PageHero>
+    <StageHero
+      :img="asset('banner-code')" title="在线看代码"
+      en="code · the window desk" line="白名单仓库,树来自 git 清单,内容读的是本机工作区"
+    />
 
-    <div class="site-main">
+    <div class="page-floor">
+      <div class="site-main">
       <p v-if="error" class="load-error">{{ error }}</p>
 
-      <div v-if="repos.length" class="repo-bar">
+      <div v-if="repos.length" class="repo-bar stagger">
         <button
-          v-for="r in repos" :key="r.name"
+          v-for="(r, i) in repos" :key="r.name"
           class="glass-card repo-chip" :class="{ on: r.name === current, dead: !r.exists }"
+          :style="{ '--i': i }"
           :disabled="!r.exists" :title="r.desc"
           @click="openRepo(r.name)"
         >
@@ -198,47 +178,64 @@ watch(() => route.query.repo, async (q) => {
           <p v-if="!filePath" class="pane-hint">← 左边挑一个文件</p>
           <template v-else>
             <p class="crumb">{{ current }} / {{ filePath }}</p>
-            <div ref="fileContent" class="code-body" />
+            <CodePane :content="fileText" :lang="codeLang" />
           </template>
         </div>
+      </div>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.hero-sub { margin: 6px 0 0; color: #fff; opacity: 0.92; font-size: 14px; }
 .repo-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .repo-chip {
   border: 1px solid var(--line); background: var(--card); cursor: pointer;
   padding: 10px 16px; border-radius: 12px; text-align: left; font-family: inherit;
   display: flex; flex-direction: column; gap: 2px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
+.repo-chip:hover:not(.dead, .on) { transform: translateY(-2px); border-color: color-mix(in srgb, var(--sea-mid) 55%, var(--line)); }
 .repo-chip.on { border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent); }
 .repo-chip.dead { opacity: 0.45; cursor: not-allowed; }
 .repo-chip strong { font-size: 14px; color: var(--ink); }
 .repo-chip em { font-style: normal; font-size: 11px; color: var(--ink-soft); font-family: var(--font-mono); }
-.workbench { display: grid; grid-template-columns: 280px 1fr; min-height: 420px; }
-.side { border-right: 1px solid var(--line); padding: 12px 10px 12px 12px; max-height: 70vh; overflow: auto; }
+/* 工作台随选中"浮出"(选中仓库挂载/重挂那一刻演一次) */
+.workbench {
+  display: grid; grid-template-columns: 280px 1fr;
+  height: calc(100svh - 120px); min-height: 560px; /* 工作台近乎占满一屏,看代码不再憋着 */
+  animation: rise-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
+  overflow: hidden; /* 右侧代码区整块刷成 VSCode 暗色,圆角靠这里裁住 */
+}
+.side { border-right: 1px solid var(--line); padding: 12px 10px 12px 12px; overflow: auto; min-height: 0; }
 .tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 .tabs button {
   border: none; background: none; cursor: pointer; padding: 5px 12px; border-radius: 999px;
   font-size: 13px; color: var(--ink-soft); font-family: inherit;
 }
 .tabs button.on { background: var(--sea-mid); color: #fff; }
-.tree-wrap { padding-right: 6px; }
+.tree-wrap { padding-right: 6px; min-height: 200px; }
 .log { margin: 0; padding: 0 0 0 18px; font-size: 12.5px; color: var(--ink); }
 .log li { margin: 8px 0; }
 .log code { color: var(--sea-deep); margin-right: 4px; }
 .log em { display: block; font-style: normal; color: var(--ink-soft); font-size: 11px; }
-.pane { padding: 14px 18px; overflow: auto; max-height: 70vh; }
-.pane-hint { color: var(--ink-soft); margin-top: 40px; text-align: center; }
-.crumb { margin: 0 0 12px; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft); word-break: break-all; }
-.code-body :deep(pre) { margin: 0; }
-.code-body :deep(code) { background: none; padding: 0; }
+/* 右栏 = VSCode 编辑器壳:底色 #1e1e1e,和 vs2015 高亮主题同一家 */
+.pane { padding: 0; overflow: auto; min-height: 0; background: #1e1e1e; }
+.pane-hint { color: #858585; margin: 44px 0; text-align: center; font-size: 13px; }
+/* 文件路径条 ≈ 编辑器页签带:竖滚时钉在顶部 */
+.crumb {
+  position: sticky; top: 0; z-index: 2; margin: 0; padding: 9px 16px;
+  font-family: var(--font-mono); font-size: 12.5px; color: #ccc;
+  background: #2d2d30; border-bottom: 1px solid #3c3c3c; word-break: break-all;
+}
 .admin-row { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
 .admin-hint { font-size: 12px; color: var(--ink-soft); }
 .load-error { color: #c33; margin: 0 0 16px; }
 .load-empty { color: var(--ink-soft); }
-@media (max-width: 860px) { .workbench { grid-template-columns: 1fr; } .side { border-right: none; border-bottom: 1px solid var(--line); } }
+@media (max-width: 860px) {
+  /* 窄屏摊平成单列:固定屏高没法两全,树和代码各限一段自己滚 */
+  .workbench { grid-template-columns: 1fr; height: auto; min-height: 0; }
+  .side { border-right: none; border-bottom: 1px solid var(--line); max-height: 42vh; }
+  .pane { max-height: 68vh; }
+}
 </style>

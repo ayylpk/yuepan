@@ -16,6 +16,7 @@ from app.common.schemas.project.project_update import ProjectUpdate
 from app.common.schemas.project.tech_bind import TechBind
 from app.database.models import Project
 from app.src.repositories import code_repository, project_repository
+from app.tools import storage
 from app.src.service import tech_service
 
 # 允许 PUT 修改的列白名单:不在表里的、不该动的(id/时间戳)都挡在这
@@ -95,7 +96,8 @@ async def create_project(db: AsyncSession, dto: ProjectCreate) -> ProjectRespons
             "description": dto.description.strip(),
             "code": dto.code or "📦",
             "period": dto.period.strip(),
-            "path": dto.path.strip(),
+            # 入库前口径化:只留相对 REPOS_DIR 的路径(9/17 统一,绝对路径不再进 DB)
+            "path": storage.normalize_repo_path(dto.path),
             "repo": dto.repo.strip(),
         },
     )
@@ -112,6 +114,8 @@ async def update_project(db: AsyncSession, project_id: int, dto: ProjectUpdate) 
         raise HTTPException(status_code=400, detail="没收到任何要修改的字段")
     if "name" in fields and not fields["name"]:
         raise HTTPException(status_code=400, detail="项目名不能为空")
+    if "path" in fields:
+        fields["path"] = storage.normalize_repo_path(fields["path"])
     project = await project_repository.update_fields(db, project, fields)
     tech_map = await project_repository.select_tech_map(db)
     return _to_response(project, tech_map.get(project.id, []))

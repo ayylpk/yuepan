@@ -1,17 +1,21 @@
 <script setup lang="ts">
-// 首页:全幅海岸主图 + 签名元素"粼光"(呼应 banner-home 左侧那片阳光海面),
-// 下面是五入口玻璃卡。计数条问后端要,后端没起就整条隐身(不给首页添堵)。
+// 首页(9/17 重塑批3):全屏季节舞台 + 压缝"船坞卡"五入口。
+// 签名动效两件套:海面粼光(锚位随季迁移——夏在左侧阳光海面,秋在右侧落日光晕)、
+// 船坞卡错峰上浮。计数条问后端要,后端没起就一句话兜底(不给首页添堵)。
 import { onMounted, ref } from 'vue'
 import { http } from '@/api/http'
 import type { Diary, PageResult } from '@/api/types'
 import { asset } from '@/stores/season'
+import StageHero from '@/components/StageHero.vue'
 
 const ENTRIES = [
-  { to: '/notes', img: 'banner-notes', zh: '笔记', en: 'NOTES', desc: 'markdown 手记,隐私笔记上锁' },
-  { to: '/projects', img: 'banner-projects', zh: '项目', en: 'PROJECTS', desc: '做过什么,一眼数得清' },
-  { to: '/videos', img: 'banner-videos', zh: '视频', en: 'VIDEOS', desc: '自留片单,拖动进度条不卡' },
-  { to: '/code', img: 'banner-code', zh: '代码', en: 'CODE', desc: '白名单仓库,在线翻源码' },
-  { to: '/private', img: 'banner-private', zh: '小屋', en: 'PRIVATE', desc: '第二道锁后面那间洞穴' },
+  { to: '/notes', img: 'banner-notes', zh: '笔记', en: 'notes', desc: 'markdown 手记,隐私笔记上锁' },
+  { to: '/projects', img: 'banner-projects', zh: '项目', en: 'projects', desc: '做过什么,一眼数得清' },
+  { to: '/photos', img: 'banner-photos', zh: '照片', en: 'photos', desc: '挑出来的钉成一面墙' },
+  // 资料卡暂时借首页那张海景(banner-files 出图后换成自己名字即可)
+  { to: '/files', img: 'banner-home', zh: '资料', en: 'files', desc: 'txt/pdf 点开即看的架' },
+  { to: '/code', img: 'banner-code', zh: '代码', en: 'code', desc: '白名单仓库,在线翻源码' },
+  { to: '/private', img: 'banner-private', zh: '小屋', en: 'the cave', desc: '第二道锁后面那间洞穴' },
 ]
 
 const diaryCount = ref<number | null>(null)
@@ -26,85 +30,104 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
-    <header class="home-hero" :style="{ background: 'linear-gradient(165deg, var(--sky) 8%, var(--sea-mid))' }">
-      <img v-img-fade class="hero-img" :src="asset('banner-home')" alt="月畔" />
-      <!-- 签名:海面粼光,缓慢漂移;reduced-motion 下由全局规则停掉 -->
-      <div class="glitter" aria-hidden="true" />
-      <div class="hero-copy">
-        <p class="eyebrow">yueyue · a private coast</p>
-        <h1>月畔小站</h1>
-        <p class="hero-line">
+  <div class="home">
+    <div class="home-stage-wrap">
+      <StageHero
+        :img="asset('banner-home')" title="月畔"
+        en="yueyue · a private coast" :hint="false"
+      >
+        <p class="home-line">
           浪线之外没有人,<span>{{ diaryCount !== null ? `${diaryCount} 篇日记写在架上` : '把这里当海边的一间小屋用' }}</span>
         </p>
-      </div>
-      <div class="tide-line" aria-hidden="true" />
-    </header>
+      </StageHero>
+      <!-- 签名:海面粼光缓慢漂动;锚位见 CSS(夏左秋右),reduced-motion 由全局规则停掉 -->
+      <div class="glitter" aria-hidden="true" />
+    </div>
 
-    <section class="site-main entries">
-      <router-link v-for="e in ENTRIES" :key="e.to" :to="e.to" class="glass-card entry">
+    <!-- 船坞卡:骑在舞台与页面底色的交界线上,像五扇开向海的窗 -->
+    <nav class="dock stagger" aria-label="站点栏目">
+      <router-link
+        v-for="(e, i) in ENTRIES" :key="e.to" :to="e.to"
+        class="dock-card glass-card" :style="{ '--i': i }"
+      >
         <img v-img-fade :src="asset(e.img)" :alt="e.zh" loading="lazy" />
-        <div class="entry-text">
-          <p class="eyebrow">{{ e.en }}</p>
-          <h3>{{ e.zh }}</h3>
+        <div class="dock-text">
+          <h3>{{ e.zh }}<em>{{ e.en }}</em></h3>
           <p>{{ e.desc }}</p>
         </div>
       </router-link>
-    </section>
+    </nav>
   </div>
 </template>
 
 <style scoped>
-.home-hero {
-  position: relative;
-  height: min(58vh, 460px);
-  overflow: hidden;
-  display: flex; align-items: flex-end;
-}
-.hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.home-stage-wrap { position: relative; }
 
-/* 粼光:两片斜向的暖色径向渐变交叠漂动,压在图的左侧海面上 */
+/* 粼光:两片斜向暖色径向渐变交叠漂动(mix-blend screen 只提亮不遮图) */
 .glitter {
-  position: absolute; inset: -20%;
+  position: absolute; inset: 0; z-index: 2;
   pointer-events: none;
+  --gl-x: 22%; --gl-y: 34%; /* 夏:banner-home 左侧阳光海面 */
   background:
-    radial-gradient(ellipse 340px 130px at 22% 34%, rgba(255, 252, 235, 0.5), transparent 65%),
-    radial-gradient(ellipse 210px 90px at 28% 40%, rgba(255, 244, 200, 0.35), transparent 60%);
+    radial-gradient(ellipse 340px 130px at var(--gl-x) var(--gl-y), rgba(255, 252, 235, 0.5), transparent 65%),
+    radial-gradient(ellipse 210px 90px at calc(var(--gl-x) + 6%) calc(var(--gl-y) + 6%), rgba(255, 244, 200, 0.35), transparent 60%);
   mix-blend-mode: screen;
   animation: drift 14s ease-in-out infinite alternate;
 }
-@keyframes drift {
-  from { transform: translateX(-3.5%) scale(1); opacity: 0.85; }
-  to   { transform: translateX(3.5%) scale(1.08); opacity: 1; }
+html[data-season='autumn'] .glitter { --gl-x: 82%; --gl-y: 24%; } /* 秋:落日光晕在右上 */
+
+/* slot 进去的那句动态文案:跟主标动线同拍 */
+.home-line {
+  margin: 12px 0 0; font-size: 15px; color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 10px rgba(8, 40, 66, 0.55);
+  animation: copy-rise 0.8s 0.58s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
 }
 
-.hero-copy {
-  position: relative; z-index: 1;
-  padding: 0 clamp(20px, 6vw, 72px) 34px;
+/* ---- 船坞卡 ---- */
+.dock {
+  position: relative; z-index: 3;
+  margin-top: clamp(-92px, -8.5vh, -60px);
+  padding: 0 clamp(16px, 4vw, 32px) clamp(56px, 9vh, 96px);
+  max-width: 1180px; margin-left: auto; margin-right: auto;
+  /* 9/17 起六扇窗:auto-fit 让 5/6 列随宽度自己换,不用手改断点 */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(176px, 1fr)); gap: 14px;
 }
-.hero-copy .eyebrow { color: #fff; text-shadow: 0 1px 8px rgba(8, 40, 66, 0.5); }
-.hero-copy h1 {
-  margin: 4px 0 8px;
-  font-size: clamp(34px, 6vw, 58px);
-  letter-spacing: 0.18em; color: #fff; font-weight: 700;
-  text-shadow: 0 2px 18px rgba(8, 40, 66, 0.5);
+/* --rise-base:错峰起点等舞台标题动线走完 */
+.dock { --rise-base: 650ms; }
+.dock-card {
+  display: block; cursor: pointer;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
 }
-.hero-line { color: #fff; font-size: 15px; text-shadow: 0 1px 10px rgba(8, 40, 66, 0.55); margin: 0; }
+.dock-card:hover {
+  transform: translateY(-5px);
+  border-color: color-mix(in srgb, var(--sea-mid) 55%, var(--line));
+  box-shadow: 0 20px 40px -18px rgba(20, 90, 140, 0.45);
+}
+.dock-card img { width: 100%; height: 92px; object-fit: cover; transition: transform 0.4s ease; }
+.dock-card:hover img { transform: scale(1.06); }
+.dock-card { overflow: hidden; } /* 让 img scale 被圆角裁住 */
+.dock-text { padding: 12px 14px 15px; }
+.dock-text h3 {
+  margin: 0; font-size: 18px; font-weight: 400;
+  font-family: var(--font-display); letter-spacing: 0.1em; color: var(--ink);
+  display: flex; align-items: baseline; gap: 8px;
+}
+.dock-text h3 em {
+  font-style: italic; font-family: var(--font-serif);
+  font-size: 11px; letter-spacing: 0.04em; color: var(--ink-soft);
+}
+.dock-text p { margin: 5px 0 0; font-size: 12px; color: var(--ink-soft); line-height: 1.55; }
 
-/* 潮线:底缘一道细浪,和下方内容区做软过渡 */
-.tide-line {
-  position: absolute; left: 0; right: 0; bottom: -1px; height: 26px;
-  background: linear-gradient(to top, var(--bg-page), transparent);
+@media (max-width: 1000px) {
+  .dock { grid-template-columns: repeat(3, 1fr); }
 }
-
-.entries {
-  display: grid; gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+@media (max-width: 640px) {
+  /* 窄屏:五扇窗改成横向船坞,左右拖动 */
+  .dock {
+    display: flex; overflow-x: auto; gap: 12px;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 64px;
+  }
+  .dock-card { flex: 0 0 216px; scroll-snap-align: start; }
 }
-.entry { display: block; }
-.entry img { width: 100%; height: 128px; object-fit: cover; }
-.entry-text { padding: 14px 18px 18px; text-align: left; }
-.entry-text h3 { margin: 4px 0 6px; font-size: 19px; color: var(--ink); letter-spacing: 0.08em; }
-.entry-text p:last-child { margin: 0; font-size: 13px; color: var(--ink-soft); line-height: 1.6; }
-.entry .eyebrow { font-size: 10px; }
 </style>

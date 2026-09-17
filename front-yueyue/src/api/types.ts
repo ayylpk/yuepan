@@ -1,5 +1,5 @@
 /** 前后端接口数据结构约定。
- *  Diary 对齐 back-yueyue 已实现的三层模板(/api/diary,role:0=公开 1=隐私);
+ *  Diary/Photo 对齐 back-yueyue 已实现接口(/api/diary、/api/photo,role:0=公开 1=隐私);
  *  其余是待实现接口的契约(前端先行,后端照抄)。
  */
 
@@ -18,13 +18,27 @@ export interface PageResult<T> {
   data: T[]
 }
 
-export interface VideoEntry {
-  id: string
-  title: string
-  size: number
-  ext: string
-  role: number // 与日记统一用 role 口径
+/** 照片(后端 PhotoResponse 原样;path 字段后端刻意不回传,出图拼 /api/photo/{id}/file) */
+export interface Photo {
+  id: number
+  type: string // 相册/分类标签,≤20 字,可空
+  name: string // 原始文件名(展示用)
+  role: number // 与日记统一用 role 口径:0=上墙 1=收进小屋
+  size: number // 字节
   created_at: string
+  updated_at: string
+}
+
+/** 资料(FileInfoResponse 原样)。9/17 口径:原名上盘,name 就是磁盘文件名(可 PUT 改名,
+ *  磁盘同步 move);直览 GET /api/file/{id}/raw(图/文本/pdf),下载 /download,其余"请下载查看"。 */
+export interface FileEntry {
+  id: number
+  name: string // 文件名(与磁盘一致,含 "(N)" 避让后缀)
+  type: string // 小写扩展名,不带点(改名时后端跟着重算)
+  role: number // 0=上架 1=收进小屋
+  size: number // 字节
+  created_at: string
+  updated_at: string
 }
 
 export interface Project {
