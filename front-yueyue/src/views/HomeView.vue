@@ -22,8 +22,8 @@ const diaryCount = ref<number | null>(null)
 
 onMounted(async () => {
   try {
-    // 只问 page 接口拿 count(size=1 少拉数据),日记 = /api/diary(后端三层模板)
-    const res = await http.get<PageResult<Diary>>('/api/diary/page?page=1&size=1')
+    // 只问 page 接口拿 count(page_size=1 少拉数据;9/26 修:原来写 size= 后端不认,一直白拉 10 条)
+    const res = await http.get<PageResult<Diary>>('/api/diary/page?page=1&page_size=1')
     diaryCount.value = res.count
   } catch { /* 后端没起就安静,hero 有兜底文案 */ }
 })

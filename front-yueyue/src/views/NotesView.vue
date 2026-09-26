@@ -23,7 +23,9 @@ async function load() {
   error.value = ''
   try {
     const res = await http.get<PageResult<Diary>>(
-      `/api/diary/page?page=${page.value}&size=${size}&keyword=${encodeURIComponent(keyword.value)}`,
+      // 9/26 验收修:size→page_size(参数名对不上后端一直在吃默认值,没撞坏纯属 size 恰好=10);
+      // keyword 后端原本没这个参数=假动作,同日已在 diary 三层补上 LIKE 模糊搜
+      `/api/diary/page?page=${page.value}&page_size=${size}&keyword=${encodeURIComponent(keyword.value)}`,
     )
     diaries.value = res.data
     total.value = res.count

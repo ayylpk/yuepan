@@ -2,14 +2,19 @@
 // 隐私小屋(9/17 重塑批4;同日 视频→照片、加资料架):第二道锁。未解锁 = 洞门;解锁后 = 私密日记+照片+资料三格架。
 // 版式归一:洞门和墙板统一吃"暗玻璃"配方,不再一半白卡一半暗板。
 // 可见性真源在服务端(role=1 未解锁根本不返回 / photo 端点直接 404),这里只做展示与解锁动作。
+// 9/26 验收二轮:日记也在屋里就地开卷(原先 router-link 跳 /notes/:id,退出还得自己摸回来);
+// "离开小屋=自动落锁"收口在 router 的 afterEach(小屋+带着 ?from=cave 的笔记页算在屋里)。
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { ApiError, http } from '@/api/http'
 import type { Diary, FileEntry, PageResult, Photo } from '@/api/types'
 import { useAuthStore } from '@/stores/auth'
 import { asset } from '@/stores/season'
+import MarkdownView from '@/components/MarkdownView.vue'
 
 const auth = useAuthStore()
+const router = useRouter()
 const password = ref('')
 const busy = ref(false)
 const diaries = ref<Diary[]>([])
@@ -18,6 +23,13 @@ const files = ref<FileEntry[]>([])
 const tip = ref('')
 // lightbox 只吃"图"这一种,照片行和资料图片行走同一个 viewer(源地址不同而已)
 const viewer = ref<{ src: string; name: string; sub: string } | null>(null)
+// 私密日记就地阅读(9/26):列表接口本来就整行带 content,不用再跳页去拉详情
+const reading = ref<Diary | null>(null)
+function editReading() {
+  if (!reading.value) return
+  // from=cave = 告诉 router"这是小屋的延伸页",别触发自动落锁;edit=1 进页即编辑态
+  router.push(`/notes/${reading.value.id}?from=cave&edit=1`)
+}
 
 const FILE_IMG_EXT = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'])
 const fmtSize = (n: number) => (n > 1 << 20 ? (n / (1 << 20)).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB')
@@ -35,13 +47,15 @@ function openCaveFile(f: FileEntry) {
 }
 
 async function loadPrivate() {
-  // 日记:全量拉回来按 role 筛(未解锁时后端不发隐私条目,筛了也白筛,天然安全)
-  // 照片:photo 端点吃 page_size 参数,解锁态下 role=1 直接让服务端筛(比拉全量再滤省)
+  // 9/26 验收修:日记架原来是 9/16 前的旧口径"拉全量前端筛"——请求既没 role=1
+  // 也没真生效过(size 参数名对不上后端的 page_size),后端默认 role=0 只发公开条目,
+  // 再被 filter(d.role===1) 滤成恒空。改成和照片/资料架同款:服务端筛 role=1。
+  // 前端 filter 留着当第二道保险(会话失步时也不把公开条目摆上屋架)。
   diaries.value = []
   photos.value = []
   files.value = []
   try {
-    const page = await http.get<PageResult<Diary>>('/api/diary/page?page=1&size=100')
+    const page = await http.get<PageResult<Diary>>('/api/diary/page?page=1&page_size=100&role=1')
     diaries.value = page.data.filter((d) => d.role === 1)
   } catch { /* 日记接口挂了不拦后面的区 */ }
   try {
@@ -58,7 +72,10 @@ async function loadPrivate() {
 }
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') viewer.value = null
+  if (e.key === 'Escape') {
+    viewer.value = null
+    reading.value = null
+  }
 }
 onMounted(() => {
   if (auth.private) loadPrivate()
@@ -121,9 +138,9 @@ async function lock() {
 
       <section class="shelf">
         <h2>私密日记<span>{{ diaries.length }}</span></h2>
-        <router-link v-for="d in diaries" :key="d.id" :to="`/notes/${d.id}`" class="row">
-          <strong>{{ d.title }}</strong><em>{{ d.created_at.slice(0, 16) }}</em>
-        </router-link>
+        <button v-for="d in diaries" :key="d.id" type="button" class="row row-diary" @click="reading = d">
+          <strong>{{ d.title }}</strong><em>{{ d.created_at.slice(0, 16) }} · 就地看</em>
+        </button>
         <p v-if="!diaries.length && !tip" class="none">还没有收进来的日记</p>
       </section>
 
@@ -152,6 +169,23 @@ async function lock() {
         <img :src="viewer.src" :alt="viewer.name" />
         <figcaption>{{ viewer.name }} · {{ viewer.sub }}</figcaption>
       </figure>
+    </div>
+
+    <!-- 私密日记就地开卷:读完合上还在小屋;编辑才出门,带 from=cave 户籍免被落锁 -->
+    <div v-if="reading" class="cave-lightbox" @click="reading = null">
+      <article class="cave-note" @click.stop>
+        <header class="note-head">
+          <h3>{{ reading.title }}</h3>
+          <em>{{ reading.created_at.slice(0, 16) }} · 写于小屋</em>
+        </header>
+        <div class="note-body">
+          <MarkdownView :content="reading.content" />
+        </div>
+        <footer class="note-foot">
+          <t-button variant="outline" theme="default" size="small" @click="reading = null">合上继续待小屋</t-button>
+          <t-button theme="primary" size="small" @click="editReading">去编辑</t-button>
+        </footer>
+      </article>
     </div>
   </div>
 </template>
@@ -229,6 +263,25 @@ async function lock() {
   width: 100%; font: inherit; text-align: left; cursor: pointer;
   gap: 12px; align-items: center;
 }
+/* 日记架行现在是 button(就地点开),把浏览器默认皮肤褪掉,继承 .row 的玻璃配方 */
+.row-diary {
+  width: 100%; font: inherit; text-align: left; cursor: pointer;
+  color: inherit;
+}
+.row-diary strong { font-weight: 500; }
+/* 就地开卷的纸面板:日记正文按站内亮色口径排版,垫在暗玻璃幕布上 */
+.cave-note {
+  width: min(720px, 92vw); max-height: 86vh; overflow: auto;
+  background: #f8fbfc; color: var(--ink); border-radius: 16px;
+  padding: 24px clamp(18px, 4vw, 34px) 20px;
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
+  cursor: auto;
+}
+.note-head { border-bottom: 1px solid var(--line); padding-bottom: 12px; margin-bottom: 14px; }
+.note-head h3 { margin: 0; font-family: var(--font-display); font-size: 22px; font-weight: 600; }
+.note-head em { font-style: normal; font-size: 12px; color: var(--ink-soft); }
+.note-body { font-size: 15px; }
+.note-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--line); }
 .row-photo img { width: 46px; height: 46px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
 /* 资料行没缩略图,用暗色徽章占同一格位 */
 .rf-ext {

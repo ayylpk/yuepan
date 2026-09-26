@@ -1,7 +1,7 @@
 /** 四季皮肤 store(拍板方案):
  *  - localStorage 持久,html[data-season] 切 CSS 变量(style.css 里四套)
  *  - 取图收口在 asset() 一个 resolver:试 `名-季节` → 回落 `-summer` → 回落无后缀,
- *    禁各组件手拼字符串;素材统一命名 `名-季节.jpg`(夏/秋/冬已就位,春出图前走 -summer 回落)。
+ *    禁各组件手拼字符串;素材统一命名 `名-季节.jpg`(四季已齐,回落链只是保险丝)。
  */
 import { defineStore } from 'pinia'
 
@@ -16,10 +16,12 @@ export const SEASONS: { key: Season; label: string; dot: string }[] = [
 
 /** 配图已就位的季节(9/17 拍板:春/冬按钮和整套切换逻辑都保留,图没齐前先不绑定点击,
  *  等季图按"名-季节.jpg"命名丢进 assets 后往数组里加 key 即启用)。
- *  9/19 冬批 10 张落位,启用 winter;春仍走 -summer 回落。
- *  9/26 原图归档出仓:历季 *-spring/夏/秋/冬 的 PNG 原件在 F:/code/backup/yueyue-originals/
- *  (原 src/assets/_originals/ 已搬空,春批出图后原件也丢进那)。 */
-export const SEASONS_IMAGE_READY: Season[] = ['summer', 'autumn', 'winter']
+ *  9/19 冬批 10 张落位,启用 winter。
+ *  9/26 原图归档出仓:历季原件在 F:/code/backup/yueyue-originals/(spring/ 子目录收春批)。
+ *  9/26 春批 10 张落位,启用 spring —— 原件文件夹里 empty/page404 两张名字串了
+ *  (page404 文件实为方图嫩叶=empty 位,empty 文件实为 4:3 飘絮公路=404 位),
+ *  落位时已按内容纠正文件名,归档件同步纠正;logo 由 1015px PNG 重编码 256² JPG。 */
+export const SEASONS_IMAGE_READY: Season[] = ['spring', 'summer', 'autumn', 'winter']
 export const hasSeasonImages = (s: Season) => SEASONS_IMAGE_READY.includes(s)
 
 /** 换季溶解时长:html.season-morph 类的存活期(style.css 里有对应过渡规则) */

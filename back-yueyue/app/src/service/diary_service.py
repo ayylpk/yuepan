@@ -26,12 +26,13 @@ async def page_diaries(
     page_size: int = 10,
     role: int = 0,
     show_private: bool = False,
+    keyword: str | None = None,
 ):
     # 9/16 补漏:未解锁小屋时 role 强制回公开 —— ?role=1 白嫖隐私列表的路堵死
     # (真源是 session 里的解锁标记,见 api/diary.py 头部注释;photo 同款同治)
     if not show_private:
         role = ROLE_PUBLIC
-    return await diary_repository.select_page(db, page, page_size, role)
+    return await diary_repository.select_page(db, page, page_size, role, keyword)
 
 
 async def get_diary(

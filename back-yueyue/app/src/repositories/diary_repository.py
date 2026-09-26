@@ -12,7 +12,7 @@
     过滤好的 dict —— 现在明确收 dict,DTO 语义留在 service 层;
   - 删掉 sqlite3 时代的 _COLUMNS/_to_dict 死代码(误导后人)。
 """
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.models import Diary
@@ -23,13 +23,22 @@ async def select_page(
     page: int = 1,
     page_size: int = 10,
     role: int = 0,
+    keyword: str | None = None,
 ):
     skip = (page - 1) * page_size
+
+    # 9/26 补 keyword:前端搜索框从第一天起就在传 ?keyword=,后端没收这个参数,
+    # FastAPI 默默丢弃 —— 搜索一直是假动作。like 走表达式占位,不是拼 SQL。
+    conds = [Diary.role == role]
+    kw = (keyword or "").strip()
+    if kw:
+        like = f"%{kw}%"
+        conds.append(or_(Diary.title.like(like), Diary.content.like(like)))
 
     # 查当前页数据
     stmt = (
         select(Diary)
-        .where(Diary.role == role)
+        .where(*conds)
         .order_by(Diary.id.desc())
         .offset(skip)
         .limit(page_size)
@@ -37,9 +46,9 @@ async def select_page(
     result = await db.execute(stmt)
     diaries = result.scalars().all()
 
-    # 查总数
+    # 查总数(和当前页同一套条件,分页器才不会对不上)
     total = await db.scalar(
-        select(func.count()).select_from(Diary).where(Diary.role == role)
+        select(func.count()).select_from(Diary).where(*conds)
     )
 
     return total, diaries

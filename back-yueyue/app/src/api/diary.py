@@ -27,9 +27,10 @@ async def page_diaries_api(
     page: int = 1,
     page_size: int = 10,
     role: int = 0,
+    keyword: str | None = None,  # 9/26 补:前端搜索框早就在传,后端一直没接
     db: AsyncSession = Depends(get_db),
 ):
-    total, rows = await diary_service.page_diaries(db, page, page_size, role, show_private)
+    total, rows = await diary_service.page_diaries(db, page, page_size, role, show_private, keyword)
     return PageResult[DiaryResponse].success(data=rows, count=total)
 
 

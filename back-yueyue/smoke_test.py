@@ -1,6 +1,6 @@
 """部署前冒烟(常备回归脚本)。跑法(在 back-yueyue/ 下):
 
-    uv run --with httpx python smoke_test.py   # 期望输出 39/39
+    uv run --with httpx python smoke_test.py   # 期望输出 43/43
 
 隔离手法:engine.py/storage.py 都是"自己 import 时"才从 settings 读 RESOURCES_DIR,
 所以在 import app 之前把 settings.RESOURCES_DIR 指到系统临时目录沙箱,
@@ -91,6 +91,16 @@ with TestClient(app) as c:  # lifespan → 沙箱建表 + seed admin/123456
     check("解锁后 role=1 列表含隐私条", pri["id"] in ids)
     r = c.put(f"/api/diary/{pub['id']}", json={"title": "登录改题"})
     check("登录 PUT 正常", r.status_code == 200 and r.json()["title"] == "登录改题")
+    # 9/26 补:keyword 模糊搜(前端搜索框从第一天就在传这个参数,后端今天才接上)
+    j = c.get("/api/diary/page?page=1&page_size=50&role=1&keyword=隐私").json()
+    check("keyword 命中隐私架标题(小屋日记架同款请求)",
+          j["count"] == 1 and [d["id"] for d in j["data"]] == [pri["id"]])
+    j = c.get("/api/diary/page?page=1&page_size=50&keyword=x").json()
+    check("keyword 命中标题外正文(公开架)", j["count"] == 1 and j["data"][0]["id"] == pub["id"])
+    j = c.get("/api/diary/page?page=1&page_size=50&role=1&keyword=x").json()
+    check("keyword 与 role AND 组合,搜索不是越权后门", j["count"] == 0)
+    check("keyword 无命中 count=0",
+          c.get("/api/diary/page?page=1&keyword=查无此词zz").json()["count"] == 0)
     check("清场删两条", c.delete(f"/api/diary/{pub['id']}").status_code == 200
           and c.delete(f"/api/diary/{pri['id']}").status_code == 200)
 

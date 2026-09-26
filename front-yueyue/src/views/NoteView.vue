@@ -1,6 +1,8 @@
 <script setup lang="ts">
 // 日记详情 = 查看/编辑两态;/notes/new 直接进编辑态。
 // "藏进小屋"开关 = 后端 role 字段(0 公开 / 1 隐私),PUT 支持单改 role。
+// 9/26 验收二轮:支持从小屋就地开卷后进来(?from=cave&edit=1)——
+// from=cave 时"回列表"变"回小屋"、删完也回小屋;router 认户籍,这一趟不算离屋落锁。
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
@@ -13,6 +15,7 @@ const router = useRouter()
 
 const isNew = computed(() => route.name === 'note-new')
 const diaryId = computed(() => (isNew.value ? null : Number(route.params.id)))
+const fromCave = computed(() => String(route.query.from ?? '') === 'cave')
 
 const diary = ref<Diary | null>(null)
 const loading = ref(true)
@@ -35,6 +38,7 @@ async function load() {
       content: diary.value.content,
       private: diary.value.role === 1,
     })
+    if (String(route.query.edit ?? '') === '1') editing.value = true // 小屋"去编辑":进页即编辑态
   } catch (e) {
     MessagePlugin.error(e instanceof ApiError ? e.message : '加载失败')
     router.replace('/notes')
@@ -77,7 +81,7 @@ function confirmDelete() {
       await http.del(`/api/diary/${diaryId.value}`)
       MessagePlugin.success('已删除')
       dlg.hide()
-      router.replace('/notes')
+      router.replace(fromCave.value ? '/private' : '/notes') // 从小屋来的,删完送回小屋
     },
   })
 }
@@ -104,7 +108,9 @@ watch(() => route.params.id, load)
             <t-button v-if="!editing && !isNew" theme="danger" variant="text" @click="confirmDelete">删除</t-button>
             <t-button v-if="editing" theme="primary" :loading="saving" @click="save">保存</t-button>
             <t-button v-if="editing && !isNew" variant="outline" @click="load">取消</t-button>
-            <t-button variant="text" @click="router.push('/notes')">回列表</t-button>
+            <t-button variant="text" @click="router.push(fromCave ? '/private' : '/notes')">
+              {{ fromCave ? '回小屋' : '回列表' }}
+            </t-button>
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-/** 路由表 + 登录闸门。
+/** 路由表 + 登录闸门 + 小屋自动落锁。
  *  Java 视角:beforeEach 就是一个全局 Filter,public 路径直接放行,
  *  其余先问 /auth/me(只在首帧问一次),没登录统一轰去 /login?redirect=。
  */
@@ -52,8 +52,18 @@ router.beforeEach(async (to) => {
   return true
 })
 
+// 9/26 验收二轮:"灯只在屋里亮" —— 离开小屋动线自动落锁,不再依赖手动按钮。
+// 小屋驻点 = /private 本身 + 带 ?from=cave 的笔记页(小屋"去编辑"的延伸,不算离屋)。
+// 挂在 afterEach 而不是 PrivateView 卸载钩子:小屋→编辑页的跳转同样会卸载组件,挂卸载会误锁。
+// 非 public 路由 beforeEach 已 ensureLoaded,走到这里 auth.private 反映的是服务端真值;
+// 刷新落在屋外页面同样触发补锁(beforeEach 先解析完才进 afterEach)。
 router.afterEach((to) => {
   if (to.meta.title) document.title = String(to.meta.title)
+  const isCaveStop = to.name === 'private' || String(to.query.from ?? '') === 'cave'
+  if (!isCaveStop) {
+    const auth = useAuthStore()
+    if (auth.private) auth.lock().catch(() => {})
+  }
 })
 
 export default router
