@@ -175,10 +175,10 @@ onMounted(() => {
         </t-tooltip>
       </template>
       <template #op="{ row }">
-        <t-button size="tiny" variant="text" theme="primary" @click="startEdit(row)">编辑</t-button>
-        <t-button size="tiny" variant="text" theme="primary" @click="startBind(row)">技术栈</t-button>
+        <t-button size="small" variant="text" theme="primary" @click="startEdit(row)">编辑</t-button>
+        <t-button size="small" variant="text" theme="primary" @click="startBind(row)">技术栈</t-button>
         <t-popconfirm content="删除项目(不会动你磁盘上的文件),确认?" @confirm="doDelete(row)">
-          <t-button size="tiny" variant="text" theme="danger">删除</t-button>
+          <t-button size="small" variant="text" theme="danger">删除</t-button>
         </t-popconfirm>
       </template>
     </t-table>

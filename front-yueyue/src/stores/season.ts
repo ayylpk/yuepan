@@ -1,7 +1,7 @@
 /** 四季皮肤 store(拍板方案):
  *  - localStorage 持久,html[data-season] 切 CSS 变量(style.css 里四套)
  *  - 取图收口在 asset() 一个 resolver:试 `名-季节` → 回落 `-summer` → 回落无后缀,
- *    禁各组件手拼字符串;素材统一命名 `名-季节.jpg`(夏/秋已就位,春/冬出图前走 -summer 回落)。
+ *    禁各组件手拼字符串;素材统一命名 `名-季节.jpg`(夏/秋/冬已就位,春出图前走 -summer 回落)。
  */
 import { defineStore } from 'pinia'
 
@@ -14,9 +14,12 @@ export const SEASONS: { key: Season; label: string; dot: string }[] = [
   { key: 'winter', label: '冬', dot: '#86a9d0' },
 ]
 
-/** 配图已就位的季节(9/17 拍板:春/冬按钮和整套切换逻辑都保留,
- *  但先不绑定点击,等两季图按"名-季节.jpg"命名丢进 assets 后往数组里加 key 即启用)。 */
-export const SEASONS_IMAGE_READY: Season[] = ['summer', 'autumn']
+/** 配图已就位的季节(9/17 拍板:春/冬按钮和整套切换逻辑都保留,图没齐前先不绑定点击,
+ *  等季图按"名-季节.jpg"命名丢进 assets 后往数组里加 key 即启用)。
+ *  9/19 冬批 10 张落位,启用 winter;春仍走 -summer 回落。
+ *  9/26 原图归档出仓:历季 *-spring/夏/秋/冬 的 PNG 原件在 F:/code/backup/yueyue-originals/
+ *  (原 src/assets/_originals/ 已搬空,春批出图后原件也丢进那)。 */
+export const SEASONS_IMAGE_READY: Season[] = ['summer', 'autumn', 'winter']
 export const hasSeasonImages = (s: Season) => SEASONS_IMAGE_READY.includes(s)
 
 /** 换季溶解时长:html.season-morph 类的存活期(style.css 里有对应过渡规则) */

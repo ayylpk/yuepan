@@ -113,9 +113,9 @@ onMounted(load)
       </template>
       <template #created_at="{ row }"><span class="dim">{{ row.created_at.slice(0, 16) }}</span></template>
       <template #op="{ row }">
-        <t-button size="tiny" variant="text" theme="primary" @click="startRename(row)">改名</t-button>
+        <t-button size="small" variant="text" theme="primary" @click="startRename(row)">改名</t-button>
         <t-popconfirm content="删除后不可恢复,确认?" @confirm="doDelete(row)">
-          <t-button size="tiny" variant="text" theme="danger">删除</t-button>
+          <t-button size="small" variant="text" theme="danger">删除</t-button>
         </t-popconfirm>
       </template>
     </t-table>

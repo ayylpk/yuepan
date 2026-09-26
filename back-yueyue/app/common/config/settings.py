@@ -20,6 +20,17 @@ RESOURCES_DIR = PROJECT_ROOT / "resources"
 # 换机器/挪仓库存放地:改这一行(或设环境变量 REPOS_DIR),DB 里的行一行都不用动。
 REPOS_DIR = Path(os.getenv("REPOS_DIR", "F:/code/project"))
 
+# 允许的跨域来源(逗号分隔)。开发期 vite dev 走代理=同源,用不上这层;
+# 部署时若前端域名直连本服务(不反代 /api),设 CORS_ORIGINS=https://实际前端源。
+CORS_ORIGINS = [
+    o.strip()
+    for o in os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if o.strip()
+]
+
 # 所有接口的公共前缀
 API_PREFIX = "/api"
 

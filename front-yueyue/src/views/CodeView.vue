@@ -151,8 +151,8 @@ watch(() => route.query.repo, async (q) => {
       <p v-else-if="!error" class="load-empty">白名单还是空的 —— 后端 /api/code/repos 没数据</p>
 
       <p v-if="current && auth.loggedIn" class="admin-row">
-        <t-button size="tiny" variant="outline" :loading="syncBusy === 'pull'" @click="sync('pull')">⤓ git pull + 重建索引</t-button>
-        <t-button size="tiny" variant="outline" :loading="syncBusy === 'reindex'" @click="sync('reindex')">⟳ 只重建索引</t-button>
+        <t-button size="small" variant="outline" :loading="syncBusy === 'pull'" @click="sync('pull')">⤓ git pull + 重建索引</t-button>
+        <t-button size="small" variant="outline" :loading="syncBusy === 'reindex'" @click="sync('reindex')">⟳ 只重建索引</t-button>
         <span class="admin-hint">动磁盘的操作,登录才露这两个按钮;pull 只做快进,有分叉会原样报错</span>
       </p>
 

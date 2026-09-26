@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.common.config.settings import CORS_ORIGINS
 from app.common.result.result import Result
 from app.src.api import code, diary, file, login, photo, project, tech, user
 from app.database.bootstrap import init_db
@@ -20,10 +21,11 @@ async def lifespan(application: FastAPI):
 
 app = FastAPI(title="月畔小站 API", version="0.1.0", lifespan=lifespan)
 
-# 开发期:vite dev(5173) 走代理时是同源,这层是给直连 8000 调试兜底的
+# 开发期:vite dev(5173) 走代理时是同源,这层是给直连 8000 调试兜底的;
+# 9/26 部署前审查:来源收进 settings.CORS_ORIGINS(env 可覆盖,默认值不变)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,  # HttpOnly session cookie 跨域必须开这个
     allow_methods=["*"],
     allow_headers=["*"],

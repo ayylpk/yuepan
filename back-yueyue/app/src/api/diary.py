@@ -16,7 +16,7 @@ from app.common.schemas.diary.diary_response import DiaryResponse
 from app.common.schemas.diary.diary_update import DiaryUpdate
 from app.database.engine import get_db
 from app.src.service import diary_service
-from app.tools.session import ShowPrivate
+from app.tools.session import LoginUser, ShowPrivate
 
 router = APIRouter(prefix=f"{API_PREFIX}/diary", tags=["diary"])
 
@@ -44,24 +44,31 @@ async def get_diary_api(
 
 @router.post("", response_model=DiaryResponse)
 async def create_diary_api(
+    login_user: LoginUser,
     data: DiaryCreate,
     db: AsyncSession = Depends(get_db),
 ):
+    # 9/26 部署前审查补闸:写接口全站唯一漏网的裸 POST(photo/file/project 等
+    # 都有 LoginUser)。前端无感——编辑器路由本就挡匿名,这里堵的是直连 API。
     return await diary_service.create_diary(db, data.title, data.content, data.role)
 
 
 @router.put("/{diary_id}", response_model=DiaryResponse)
 async def update_diary_api(
+    login_user: LoginUser,
     diary_id: int,
     data: DiaryUpdate,
     show_private: ShowPrivate,
     db: AsyncSession = Depends(get_db),
 ):
+    # 9/26 部署前审查:原来只挂 ShowPrivate —— 公开条目(role=0)短路掉隐私
+    # 判断后,匿名也能改/删。对齐 photo 口径:登录闸门 + 小屋闸门双锁。
     return await diary_service.update_diary(db, diary_id, data, show_private)
 
 
 @router.delete("/{diary_id}")
 async def delete_diary_api(
+    login_user: LoginUser,
     diary_id: int,
     show_private: ShowPrivate,
     db: AsyncSession = Depends(get_db),
