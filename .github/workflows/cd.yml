@@ -58,24 +58,19 @@ jobs:
           P_SSH_KEY: ${{ secrets.SSH_KEY }}
           P_SERVER_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
+          # 诊断信息一律走 ::notice:: / ::error:: ——它们会成为 check-run 注解,
+          # 不用登录也能读到(公开仓库的注解接口匿名可访问),省得为看一行日志去翻网页。
           mark() { if [ -n "$1" ]; then printf '已配'; else printf '未配'; fi; }
-          echo "---- Secret 命中情况(只看有无,不打印值)----"
-          printf "  服务器地址  SSH_HOST=%s  SERVER_HOST=%s\n" "$(mark "$P_SSH_HOST")" "$(mark "$P_SERVER_HOST")"
-          printf "  登录用户    SSH_USER=%s  SERVER_USER=%s\n" "$(mark "$P_SSH_USER")" "$(mark "$P_SERVER_USER")"
-          printf "  私钥        SSH_KEY=%s  SSH_PRIVATE_KEY=%s\n" "$(mark "$P_SSH_KEY")" "$(mark "$P_SERVER_KEY")"
-          echo "-----------------------------------------------"
+          echo "::notice::Secret 命中表 | 地址: SSH_HOST=$(mark "$P_SSH_HOST") SERVER_HOST=$(mark "$P_SERVER_HOST") | 用户: SSH_USER=$(mark "$P_SSH_USER") SERVER_USER=$(mark "$P_SERVER_USER") | 私钥: SSH_KEY=$(mark "$P_SSH_KEY") SSH_PRIVATE_KEY=$(mark "$P_SERVER_KEY")"
 
           miss=""
-          if [ -z "$DEP_HOST" ]; then miss="$miss\n  - 服务器地址:建 SSH_HOST(或 SERVER_HOST)"; fi
-          if [ -z "$DEP_USER" ]; then miss="$miss\n  - 登录用户:建 SSH_USER(或 SERVER_USER)"; fi
-          if [ -z "$DEP_KEY"  ]; then miss="$miss\n  - 私钥:建 SSH_KEY(或 SSH_PRIVATE_KEY)"; fi
+          if [ -z "$DEP_HOST" ]; then miss=1; echo "::error::缺 Secret「服务器地址」——建 SSH_HOST(或 SERVER_HOST)"; fi
+          if [ -z "$DEP_USER" ]; then miss=1; echo "::error::缺 Secret「登录用户」——建 SSH_USER(或 SERVER_USER)"; fi
+          if [ -z "$DEP_KEY"  ]; then miss=1; echo "::error::缺 Secret「私钥」——建 SSH_KEY(或 SSH_PRIVATE_KEY)"; fi
           if [ -n "$miss" ]; then
-            echo "::error::缺少以下 Secret,CD 无法连接服务器:"
-            printf "%b\n" "$miss"
-            echo "去这里建(Settings → Secrets and variables → Actions 的 Secrets 标签页,不是 Variables):"
-            echo "  https://github.com/${{ github.repository }}/settings/secrets/actions"
-            echo "若已建过,注意 Secrets 那页有两个标签:Repository secrets 与 Environment secrets,"
-            echo "Environment secret 必须在 job 里声明 environment 才会生效,请建成 Repository secret。"
+            echo "建的位置:Settings → Secrets and variables → Actions 的 **Secrets** 标签页(Repository secrets)。"
+            echo "常见错法:建成了 Variables(那是明文,要用 vars. 取);或建成 Environment secret(需在 job 里声明 environment 才生效)。"
+            echo "网页地址:https://github.com/${{ github.repository }}/settings/secrets/actions"
             exit 1
           fi
           echo "地址、用户、私钥均已取到(值不打印),私钥长度 ${#DEP_KEY} 字符"
@@ -83,7 +78,7 @@ jobs:
             *"-----BEGIN"*"PRIVATE KEY-----"*)
               echo "私钥格式看起来正确(含 BEGIN/END 标记)" ;;
             *)
-              echo "::warning::私钥里没找到 -----BEGIN ... PRIVATE KEY----- 标记,可能粘贴时被截断" ;;
+              echo "::error::私钥里没找到 -----BEGIN ... PRIVATE KEY----- 标记,多半是粘贴时被截断了(或只贴了 .pub 公钥)" ;;
           esac
 
       - name: 远程拉取并重启容器
