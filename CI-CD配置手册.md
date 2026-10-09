@@ -97,17 +97,21 @@ ssh -i ~/.ssh/yuepan_deploy 你的用户@你的服务器 "echo 登录成功 && d
 | Secret 名 | 值 | 说明 |
 |---|---|---|
 | `SSH_HOST` | 服务器 IP 或域名 | 例如 `1.2.3.4` 或 `yuepan.example.com` |
-| `SSH_USER` | 登录用户名 | 例如 `root` 或 `deploy` |
+| `SSH_USER` | 登录用户名 | **本仓库这台是 `ubuntu`**（不是 root）；例如 `root` / `deploy` |
 | `SSH_KEY` | 私钥**全文** | 用 `cat ~/.ssh/yuepan_deploy` 打印后**整段**复制，必须包含 `-----BEGIN ...-----` 和 `-----END ...-----` 两行 |
 | `SSH_PORT` | 例如 `22` | 可留空（工作流里默认回落 22） |
 
-> **名字必须对得上，否则 CD 报 `error: missing server host`。**
-> `cd.yml` 里也接受 `SERVER_HOST` / `SERVER_USER` / `SSH_PRIVATE_KEY` 这几个别名（为兼容另一份指南的写法），
-> 但**建在 `Variables` 标签页里是不生效的**——工作流读的是 `secrets.`，明文变量要用 `vars.` 才取得到。
+> **这 4 个名字不是必须的**：`cd.yml` 里做了一张别名表，下面这些名字同样认（大小写不敏感），
+> 还同时兼容 `vars.*`（万一建到了 Variables 标签页也能跑）：
+> - 地址：`YUEPANIP` / `SSH_HOST` / `SERVER_HOST` / `HOST` / `IP` / `SERVER_IP` / `ADDRESS` / `DOMAIN`
+> - 用户：`SSH_USER` / `SERVER_USER` / `USER` / `USERNAME` / `NAME` / `LOGIN`
+> - 私钥：`SSH_KEY` / `SSH_PRIVATE_KEY` / `KEY` / `PRIVATE_KEY` / `SERVER_KEY`
+>
+> **名字必须建在 `Secrets` 标签页**（Repository secrets）；建到 `Variables` 虽也能被上面兜底，但那是明文存储，私钥别这么干。
 > 另外 Secrets 页有 `Repository secrets` 和 `Environment secrets` 两类，**环境级密钥必须在 job 里声明 `environment:` 才生效**，请建成仓库级。
 >
-> 名字到底配对没有，不用猜：CD 每次跑的第一件事就是打印一张命中表
-> （`SSH_HOST=已配 SERVER_HOST=未配` …），哪一行全"未配"就是那里缺了。
+> 名字到底配对没有，不用猜：CD 每次跑的第一步就是打印一张命中表
+> （`YUEPANIP=已配 SSH_HOST=未配 …`），缺哪个还会逐条点名。
 
 ### 4.2 Variables 标签页 → `New repository variable`
 
@@ -146,6 +150,23 @@ sudo git clone https://github.com/ayylpk/yuepan.git /srv/repos/yuepan
 # 并把 .env 里的 REPOS_HOST_DIR 指向 /srv/repos
 ```
 
+> **2026-10-09 实测记录（`101.42.105.26`，Ubuntu 22.04.5 / 2 核 / 1.9GB 内存）**
+>
+> 这台机上前置条件**已全部配好**，配置过程中踩到的坑列在这（换机器时照抄）：
+>
+> | 事项 | 实际情况 / 做法 |
+> |---|---|
+> | **登录用户** | 是 **`ubuntu`**，不是 `root`（`root` 用本机两把钥匙都被拒）。CD 的 `NAME` 必须填 `ubuntu` |
+> | **内存偏小** | 1.9GB / 2 核，构建前端镜像有 OOM 风险 → 加了 **2GB swap** 并写进 `/etc/fstab` |
+> | **docker 组** | ubuntu 已在 docker 组，`docker ps` 不用 sudo |
+> | **宿主 80 端口** | 空的，宿主没装 nginx/caddy → 直接把容器映射到 80 |
+> | **云安全组** | **放行 80、屏蔽 8080**（80 探测是"拒绝=RST"说明云侧通；8080 是"超时=丢包"说明云侧挡）。用高位端口要先去控制台放行，否则外网连不上而 nginx 日志里毫无记录 |
+> | **`/srv` 是 root 的** | `git clone` 到 `/srv` 会 `Permission denied`。先 `sudo mkdir -p /srv/yuepan && sudo chown ubuntu:ubuntu /srv/yuepan`，再以 ubuntu 身份 clone；改完属主立刻 `git config --global --add safe.directory /srv/yuepan`，否则 `dubious ownership` 会让 `set -e` 中断整段脚本 |
+> | **首次 clone 很慢** | 服务器直连 GitHub 只有 **~48KB/s**（23MB 要十几分钟）。改从本机 `git bundle create … --all` + `scp`（本机到服务器 **3MB/s**，23MB 用 8 秒）再 `git clone <bundle>` + `git remote set-url origin <GitHub> URL`。同一份 bundle 可 clone 出部署目录和 repos 目录两份 |
+> | **apt 源** | `deb.debian.org` 实测 **48KB/s**，装 git 那步会卡很久 → `.env` 设 `DEBIAN_MIRROR=mirrors.tencentyun.com`（**19.3MB/s**） |
+> | **Docker 镜像源** | `registry-1.docker.io` 在服务器上**完全不可达（000）** → `daemon.json` 配 `mirror.ccs.tencentyun.com`。注意：镜像加速只覆盖 docker.io，**管不到 `ghcr.io`**（`ghcr.io/astral-sh/uv` 那层实测 40KB/s，22MB 拉了 8 分钟，但只需一次，之后进本地缓存） |
+> | **pip / npm 源** | `pypi.org` 约 10s、`registry.npmjs.org` 0.8s，都不用改 |
+
 ---
 
 ## 6. 第六步:上 CD 并首次触发
@@ -165,14 +186,28 @@ git push
 
 ## 7. 怎么确认部署真的成功了
 
-GitHub 侧那个绿勾只说明"SSH 脚本没报错"，还要去服务器上验一眼：
+> **2026-10-09 已实跑通过**（服务器 `101.42.105.26`，commit `996ba7d`）。
+> 下表是从**公网**发起的实测结果，不是"应该能行"：
+
+| 验的项 | 命令 | 结果 |
+|---|---|---|
+| 首页 | `curl -o /dev/null -w '%{http_code}' http://101.42.105.26/` | **200**（0.07s） |
+| SPA 回落（history 模式） | `curl … http://101.42.105.26/notes/1` | **200**，返回的是 `index.html` |
+| 反代 + 前缀没被剥 | `curl http://101.42.105.26/api/health` | `{"code":200,…,"service":"yueyue-back"}` |
+| **上传不被 413 挡** | 登录后 `POST /api/file` 传 **2MB** 文件 | **200**（默认 1MB 早就 413 了）→ `client_max_body_size 60m` 生效 |
+| 数据落在宿主机 | `ls /srv/yuepan/data/resources/` | 有 `database/`、`file/` 两个目录（volume 挂载正确，部署不会清零） |
+| index.html 不缓存 | `curl -I http://…/index.html` | `Cache-Control: no-cache`（发版后不会卡在旧壳） |
+
+（测上传后会留下测试文件，记得删掉：`curl -b ck -X DELETE http://…/api/file/<id>`。）
+
+平时自己复查（在服务器上）：
 
 ```bash
 cd /srv/yuepan
 docker compose ps                  # 两个服务都应是 Up / healthy
 docker compose logs -f api --tail 50
-curl -s localhost:8080/api/health  # 期望 {"code":200,...,"service":"yueyue-back"}
-curl -sI localhost:8080/ | head -1 # 期望 200（前端首页）
+curl -s localhost/api/health       # 期望 {"code":200,...}
+curl -sI localhost/ | head -1      # 期望 200
 ```
 
 ---
@@ -207,6 +242,11 @@ docker compose up -d --build
 | **CD 完全不触发** | ① `cd.yml` 里写的是 `workflows: ["CI"]`，必须与 `ci.yml` 顶部的 `name: CI` **完全一致**（大小写、空格都算）；② CI 从没在 main 上成功跑过一次 | 核对两个文件的 name；确认 Actions 里 CI 是绿的 |
 | CD 报 `error: missing server host`（几秒就挂，`Run entrypoint.sh` 里出现） | **Secret 名字对不上**，`secrets.SSH_HOST` 取到了空值。常见两种情况：① 建的时候用了别的名字（如 `SERVER_HOST`）；② 建在了 Variables 标签页或 Environment secrets 里 | 看 CD 第一步打印的命中表；工作流已兼容 `SERVER_HOST`/`SERVER_USER`/`SSH_PRIVATE_KEY` 三个别名，其余名字请改名或改 `cd.yml` 的 `env:` 那几行 |
 | CD 日志顶部有 `Unexpected input(s) 'script_stop'` | `appleboy/ssh-action@v1` 移除了 `script_stop` 参数（改用脚本文本里的 `set -e`），传了没副作用但会有警告 | 已从 `cd.yml` 撤掉；自己改的时候也别再加回来 |
+| **部署成功但外网打不开，且 nginx 日志里没有任何请求记录** | 云安全组没放行该端口（用 8080 这类高位端口最常见） | 去控制台放行，或把 `.env` 的 `WEB_PORT` 改成 80。**判定方法**：从外部 `python -c "socket.create_connection((ip,port))"` —— 报「超时」=被丢包(云侧挡)，报「拒绝」=端口通但没监听(云侧放行) |
+| **首次构建卡在装 git，日志十几分钟不动** | 基础镜像里的 apt 源是 `deb.debian.org`，国内实测仅 ~48KB/s | `.env` 设 `DEBIAN_MIRROR=mirrors.tencentyun.com`（或 aliyun），快约 400 倍。**别写死进 Dockerfile**——CI 跑在 GitHub 机器上，内网域名解析不了 |
+| **`docker pull` 极慢或 000 不可达** | 国内服务器连 `registry-1.docker.io` 常被墙 | 配 `daemon.json` 的 `registry-mirrors`。但它**只管 docker.io，管不到 `ghcr.io`**；镜像里若引用了 ghcr 的基础镜像（如 `astral-sh/uv`），那层只能慢拉一次（之后进本地缓存） |
+| **远程 SSH 命令超过 ~2 分钟就"无输出 + 退出码 1"，但命令其实执行了** | 长会话被掐断 | 远程耗时操作一律 `nohup … > /tmp/x.log 2>&1 &` 再轮询日志；别把长命令和 `set -e` 混在一起，否则会留下半成品（曾只 clone 出一个空仓库） |
+| **CD 被触发、SSH 也通了，但部署的还是旧代码** | `concurrency: cancel-in-progress: false` 让部署排队，新提交那次会等旧的跑完 | 想立刻用新版：去 Actions 页面 **Cancel** 正在跑的那次（或在服务器上掐掉它的构建进程），已在跑的那次会记为失败 |
 | CD 报 `Permission denied (publickey)` | 公钥没装对 / 私钥粘贴不完整 | 重跑第 3 步的验证命令 |
 | CD 报 `docker: command not found` 或 `unknown command: compose` | 服务器只装了 docker，没装 compose 插件 | 装 `docker-compose-plugin` |
 | CD 报 `permission denied ... docker.sock` | 用户不在 docker 组 | `usermod -aG docker` 后重新登录 |
