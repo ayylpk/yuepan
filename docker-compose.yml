@@ -17,7 +17,12 @@
 
 services:
   api:
-    build: ./back-yueyue
+    build:
+      context: ./back-yueyue
+      args:
+        # apt 源。官方源 deb.debian.org 在国内服务器只有 ~48KB/s(实测),
+        # 设成国内镜像能快三个数量级。默认不动,GitHub runner 与海外机器保持官方源。
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-deb.debian.org}
     restart: unless-stopped
     environment:
       # 「在线看代码」读写的仓库根目录(容器内路径,与下面的挂载点一致)

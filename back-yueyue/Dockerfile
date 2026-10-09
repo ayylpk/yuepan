@@ -14,7 +14,18 @@ FROM python:3.12-slim
 COPY --from=ghcr.io/astral-sh/uv:0.11 /uv /usr/local/bin/uv
 
 # git 是「在线看代码」的硬依赖;ca-certificates 供 git 走 https 拉取
-RUN apt-get update \
+#
+# apt 源做成可替换:官方源 deb.debian.org 在国内服务器上实测只有 48KB/s,
+# 而国内/内网镜像 19MB/s(差三个数量级),会让每次「首次构建」多花十几分钟。
+# 默认保持官方源(GitHub runner 与海外机器不受影响),国内服务器在 .env 里设
+# DEBIAN_MIRROR=mirrors.tencentyun.com(或 mirrors.aliyun.com)即可。
+ARG DEBIAN_MIRROR=deb.debian.org
+RUN if [ "$DEBIAN_MIRROR" != "deb.debian.org" ]; then \
+      for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do \
+        if [ -f "$f" ]; then sed -i "s|deb.debian.org|$DEBIAN_MIRROR|g" "$f"; fi; \
+      done; \
+    fi \
+ && apt-get update \
  && apt-get install -y --no-install-recommends git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
