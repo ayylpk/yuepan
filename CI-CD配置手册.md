@@ -159,8 +159,8 @@ sudo git clone https://github.com/ayylpk/yuepan.git /srv/repos/yuepan
 > | **登录用户** | 是 **`ubuntu`**，不是 `root`（`root` 用本机两把钥匙都被拒）。CD 的 `NAME` 必须填 `ubuntu` |
 > | **内存偏小** | 1.9GB / 2 核，构建前端镜像有 OOM 风险 → 加了 **2GB swap** 并写进 `/etc/fstab` |
 > | **docker 组** | ubuntu 已在 docker 组，`docker ps` 不用 sudo |
-> | **宿主 80 端口** | 空的，宿主没装 nginx/caddy → 直接把容器映射到 80 |
-> | **云安全组** | **放行 80、屏蔽 8080**（80 探测是"拒绝=RST"说明云侧通；8080 是"超时=丢包"说明云侧挡）。用高位端口要先去控制台放行，否则外网连不上而 nginx 日志里毫无记录 |
+> | **对外端口** | 最终用 **8080**（`WEB_PORT=8080`）。宿主没装 nginx/caddy，80 也是空的；留 8080 是给以后宿主上 Caddy/nginx 做 HTTPS 时的反代端口 |
+> | **云安全组** | **默认只放行 80，8090/8080 需自行放行**（判定：外部探测报"拒绝=RST"是云侧通、报"超时=丢包"是云侧挡）。本次已在控制台放行 8080，最终用 `http://101.42.105.26:8080` |
 > | **`/srv` 是 root 的** | `git clone` 到 `/srv` 会 `Permission denied`。先 `sudo mkdir -p /srv/yuepan && sudo chown ubuntu:ubuntu /srv/yuepan`，再以 ubuntu 身份 clone；改完属主立刻 `git config --global --add safe.directory /srv/yuepan`，否则 `dubious ownership` 会让 `set -e` 中断整段脚本 |
 > | **首次 clone 很慢** | 服务器直连 GitHub 只有 **~48KB/s**（23MB 要十几分钟）。改从本机 `git bundle create … --all` + `scp`（本机到服务器 **3MB/s**，23MB 用 8 秒）再 `git clone <bundle>` + `git remote set-url origin <GitHub> URL`。同一份 bundle 可 clone 出部署目录和 repos 目录两份 |
 > | **apt 源** | `deb.debian.org` 实测 **48KB/s**，装 git 那步会卡很久 → `.env` 设 `DEBIAN_MIRROR=mirrors.tencentyun.com`（**19.3MB/s**） |
@@ -191,14 +191,14 @@ git push
 
 | 验的项 | 命令 | 结果 |
 |---|---|---|
-| 首页 | `curl -o /dev/null -w '%{http_code}' http://101.42.105.26/` | **200**（0.07s） |
-| SPA 回落（history 模式） | `curl … http://101.42.105.26/notes/1` | **200**，返回的是 `index.html` |
-| 反代 + 前缀没被剥 | `curl http://101.42.105.26/api/health` | `{"code":200,…,"service":"yueyue-back"}` |
+| 首页 | `curl -o /dev/null -w '%{http_code}' http://101.42.105.26:8080/` | **200**（0.09s） |
+| SPA 回落（history 模式） | `curl … http://101.42.105.26:8080/notes/1` | **200**，返回的是 `index.html` |
+| 反代 + 前缀没被剥 | `curl http://101.42.105.26:8080/api/health` | `{"code":200,…,"service":"yueyue-back"}` |
 | **上传不被 413 挡** | 登录后 `POST /api/file` 传 **2MB** 文件 | **200**（默认 1MB 早就 413 了）→ `client_max_body_size 60m` 生效 |
 | 数据落在宿主机 | `ls /srv/yuepan/data/resources/` | 有 `database/`、`file/` 两个目录（volume 挂载正确，部署不会清零） |
-| index.html 不缓存 | `curl -I http://…/index.html` | `Cache-Control: no-cache`（发版后不会卡在旧壳） |
+| index.html 不缓存 | `curl -I http://…:8080/index.html` | `Cache-Control: no-cache`（发版后不会卡在旧壳） |
 
-（测上传后会留下测试文件，记得删掉：`curl -b ck -X DELETE http://…/api/file/<id>`。）
+（测上传后会留下测试文件，记得删掉：`curl -b ck -X DELETE http://…:8080/api/file/<id>`。）
 
 平时自己复查（在服务器上）：
 
@@ -206,8 +206,8 @@ git push
 cd /srv/yuepan
 docker compose ps                  # 两个服务都应是 Up / healthy
 docker compose logs -f api --tail 50
-curl -s localhost/api/health       # 期望 {"code":200,...}
-curl -sI localhost/ | head -1      # 期望 200
+curl -s localhost:8080/api/health  # 期望 {"code":200,...}
+curl -sI localhost:8080/ | head -1 # 期望 200
 ```
 
 ---
