@@ -3,14 +3,15 @@
 # 走"路线 2":SSH 进服务器,就地 git 拉取 + docker compose 重建。
 # 不用镜像仓库(GHCR)那套,因为服务器本来就要装 Docker 构建环境,少一个环节少一处坑。
 #
-# 【必须在 GitHub 仓库里配好这些,否则这个工作流会红】
-#   Settings → Secrets and variables → Actions
-#   Secrets(加密):
+# 【必须先在 GitHub 仓库里配好,否则这个工作流会红】
+#   Settings → Secrets and variables → Actions → Secrets 标签页(不是 Variables!)
 #     SSH_HOST   服务器 IP 或域名
 #     SSH_USER   登录用户
 #     SSH_KEY    私钥全文(-----BEGIN ... 到 END ... 整段粘贴)
 #     SSH_PORT   可选,默认 22
-#   Variables(明文,可选):
+#   为兼容另一些写法,下面同时接受 SERVER_HOST / SERVER_USER / SSH_PRIVATE_KEY 这几个别名,
+#   哪套配了用哪套——不填对名字报的就是 "missing server host"。
+#   Variables 标签页(明文,可选):
 #     DEPLOY_DIR 服务器上的部署目录,默认 /srv/yuepan
 #
 # 触发条件:CI 跑完 **且成功** 才部署。CI 失败或被取消 = 这里什么都不做。
@@ -36,19 +37,67 @@ jobs:
       github.event_name == 'workflow_dispatch'
       || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    # 统一在这里做"别名兼容":左边优先,取不到就用备选。
+    # 集中一处,下面调用时只写 env.X,不会漏改。
+    env:
+      DEP_HOST: ${{ secrets.SSH_HOST || secrets.SERVER_HOST || secrets.HOST }}
+      DEP_USER: ${{ secrets.SSH_USER || secrets.SERVER_USER || secrets.USERNAME }}
+      DEP_KEY: ${{ secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY || secrets.SSH_KEY_TEXT }}
+      DEP_PORT: ${{ secrets.SSH_PORT || secrets.SERVER_PORT || '22' }}
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR || secrets.DEPLOY_DIR || '/srv/yuepan' }}
     steps:
+      # 老版本这里写了 script_stop: true —— v1 已移除该参数(只认脚本文本里的 set -e),
+      # 传了不会有副作用,但每次跑都会多一条 "Unexpected input(s)" 警告,所以撤掉。
+      - name: 检查 Secrets 是否齐全(缺哪个点名报哪个)
+        # 逐个探测各个候选名字有没有值,好让你直接看出"是名字不对"还是"压根没建"
+        env:
+          P_SSH_HOST: ${{ secrets.SSH_HOST }}
+          P_SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          P_SSH_USER: ${{ secrets.SSH_USER }}
+          P_SERVER_USER: ${{ secrets.SERVER_USER }}
+          P_SSH_KEY: ${{ secrets.SSH_KEY }}
+          P_SERVER_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mark() { if [ -n "$1" ]; then printf '已配'; else printf '未配'; fi; }
+          echo "---- Secret 命中情况(只看有无,不打印值)----"
+          printf "  服务器地址  SSH_HOST=%s  SERVER_HOST=%s\n" "$(mark "$P_SSH_HOST")" "$(mark "$P_SERVER_HOST")"
+          printf "  登录用户    SSH_USER=%s  SERVER_USER=%s\n" "$(mark "$P_SSH_USER")" "$(mark "$P_SERVER_USER")"
+          printf "  私钥        SSH_KEY=%s  SSH_PRIVATE_KEY=%s\n" "$(mark "$P_SSH_KEY")" "$(mark "$P_SERVER_KEY")"
+          echo "-----------------------------------------------"
+
+          miss=""
+          if [ -z "$DEP_HOST" ]; then miss="$miss\n  - 服务器地址:建 SSH_HOST(或 SERVER_HOST)"; fi
+          if [ -z "$DEP_USER" ]; then miss="$miss\n  - 登录用户:建 SSH_USER(或 SERVER_USER)"; fi
+          if [ -z "$DEP_KEY"  ]; then miss="$miss\n  - 私钥:建 SSH_KEY(或 SSH_PRIVATE_KEY)"; fi
+          if [ -n "$miss" ]; then
+            echo "::error::缺少以下 Secret,CD 无法连接服务器:"
+            printf "%b\n" "$miss"
+            echo "去这里建(Settings → Secrets and variables → Actions 的 Secrets 标签页,不是 Variables):"
+            echo "  https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "若已建过,注意 Secrets 那页有两个标签:Repository secrets 与 Environment secrets,"
+            echo "Environment secret 必须在 job 里声明 environment 才会生效,请建成 Repository secret。"
+            exit 1
+          fi
+          echo "地址、用户、私钥均已取到(值不打印),私钥长度 ${#DEP_KEY} 字符"
+          case "$DEP_KEY" in
+            *"-----BEGIN"*"PRIVATE KEY-----"*)
+              echo "私钥格式看起来正确(含 BEGIN/END 标记)" ;;
+            *)
+              echo "::warning::私钥里没找到 -----BEGIN ... PRIVATE KEY----- 标记,可能粘贴时被截断" ;;
+          esac
+
       - name: 远程拉取并重启容器
         uses: appleboy/ssh-action@v1
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT || 22 }}
-          # script_stop:任何一步失败就中断,别在失败状态下继续重启容器
-          script_stop: true
+          host: ${{ env.DEP_HOST }}
+          username: ${{ env.DEP_USER }}
+          key: ${{ env.DEP_KEY }}
+          port: ${{ env.DEP_PORT }}
+          # 首次在服务器上构建镜像要装依赖 + 打包,默认超时不够用
+          command_timeout: 20m
           script: |
             set -e
-            cd "${{ vars.DEPLOY_DIR || '/srv/yuepan' }}"
+            cd "${{ env.DEPLOY_DIR }}"
 
             # 部署目录是个 git clone。git reset --hard 只回退被跟踪的文件,
             # 不会动未跟踪的 data/(数据)与 .env(配置)—— 这两个刻意不进库。

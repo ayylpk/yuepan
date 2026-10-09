@@ -101,6 +101,14 @@ ssh -i ~/.ssh/yuepan_deploy 你的用户@你的服务器 "echo 登录成功 && d
 | `SSH_KEY` | 私钥**全文** | 用 `cat ~/.ssh/yuepan_deploy` 打印后**整段**复制，必须包含 `-----BEGIN ...-----` 和 `-----END ...-----` 两行 |
 | `SSH_PORT` | 例如 `22` | 可留空（工作流里默认回落 22） |
 
+> **名字必须对得上，否则 CD 报 `error: missing server host`。**
+> `cd.yml` 里也接受 `SERVER_HOST` / `SERVER_USER` / `SSH_PRIVATE_KEY` 这几个别名（为兼容另一份指南的写法），
+> 但**建在 `Variables` 标签页里是不生效的**——工作流读的是 `secrets.`，明文变量要用 `vars.` 才取得到。
+> 另外 Secrets 页有 `Repository secrets` 和 `Environment secrets` 两类，**环境级密钥必须在 job 里声明 `environment:` 才生效**，请建成仓库级。
+>
+> 名字到底配对没有，不用猜：CD 每次跑的第一件事就是打印一张命中表
+> （`SSH_HOST=已配 SERVER_HOST=未配` …），哪一行全"未配"就是那里缺了。
+
 ### 4.2 Variables 标签页 → `New repository variable`
 
 切到 `https://github.com/ayylpk/yuepan/settings/variables/actions`
@@ -197,6 +205,8 @@ docker compose up -d --build
 | 症状 | 原因 | 怎么办 |
 |---|---|---|
 | **CD 完全不触发** | ① `cd.yml` 里写的是 `workflows: ["CI"]`，必须与 `ci.yml` 顶部的 `name: CI` **完全一致**（大小写、空格都算）；② CI 从没在 main 上成功跑过一次 | 核对两个文件的 name；确认 Actions 里 CI 是绿的 |
+| CD 报 `error: missing server host`（几秒就挂，`Run entrypoint.sh` 里出现） | **Secret 名字对不上**，`secrets.SSH_HOST` 取到了空值。常见两种情况：① 建的时候用了别的名字（如 `SERVER_HOST`）；② 建在了 Variables 标签页或 Environment secrets 里 | 看 CD 第一步打印的命中表；工作流已兼容 `SERVER_HOST`/`SERVER_USER`/`SSH_PRIVATE_KEY` 三个别名，其余名字请改名或改 `cd.yml` 的 `env:` 那几行 |
+| CD 日志顶部有 `Unexpected input(s) 'script_stop'` | `appleboy/ssh-action@v1` 移除了 `script_stop` 参数（改用脚本文本里的 `set -e`），传了没副作用但会有警告 | 已从 `cd.yml` 撤掉；自己改的时候也别再加回来 |
 | CD 报 `Permission denied (publickey)` | 公钥没装对 / 私钥粘贴不完整 | 重跑第 3 步的验证命令 |
 | CD 报 `docker: command not found` 或 `unknown command: compose` | 服务器只装了 docker，没装 compose 插件 | 装 `docker-compose-plugin` |
 | CD 报 `permission denied ... docker.sock` | 用户不在 docker 组 | `usermod -aG docker` 后重新登录 |
