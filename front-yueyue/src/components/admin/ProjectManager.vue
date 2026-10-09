@@ -150,7 +150,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="glass-card admin-card">
+  <section class="card admin-card">
     <header class="admin-head">
       <h2>项目</h2>
       <t-button size="small" theme="primary" @click="startCreate">＋ 新增项目</t-button>

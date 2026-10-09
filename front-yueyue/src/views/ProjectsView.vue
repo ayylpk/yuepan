@@ -27,16 +27,15 @@ onMounted(async () => {
 <template>
   <div>
     <StageHero
-      :img="asset('banner-projects')" title="项目"
+      variant="banner" :img="asset('banner-projects')" title="项目"
       en="projects · on the wall" line="做过什么,值什么,都摆在这面墙上"
     />
 
-    <div class="page-floor">
-      <div class="site-main">
+    <div class="site-main">
         <t-loading :loading="loading" class="load-region">
           <p v-if="error" class="load-error">{{ error }} —— /api/projects 没接上,检查后端是否启动</p>
           <div v-else-if="projects.length" class="proj-grid stagger">
-            <div v-for="(p, i) in projects" :key="p.id" class="glass-card proj-card" :style="{ '--i': i }">
+            <div v-for="(p, i) in projects" :key="p.id" class="card proj-card" :style="{ '--i': i }">
               <div class="proj-top">
                 <span class="proj-code">{{ p.code }}</span>
                 <div>
@@ -59,7 +58,6 @@ onMounted(async () => {
             <p>还没挂项目上去</p>
           </div>
         </t-loading>
-      </div>
     </div>
   </div>
 </template>
@@ -70,12 +68,12 @@ onMounted(async () => {
 .proj-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .proj-card {
   padding: 20px 22px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 .proj-card:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--sea-mid) 55%, var(--line));
-  box-shadow: 0 16px 34px -16px rgba(20, 90, 140, 0.38);
+  border-color: var(--brand);
+  box-shadow: var(--card-shadow-hover);
 }
 .proj-top { display: flex; gap: 14px; align-items: center; }
 .proj-code { font-size: 30px; }

@@ -191,19 +191,20 @@ async function lock() {
 </template>
 
 <style scoped>
-/* 洞穴图本身就暗,骨架的兜底色换成洞穴蓝黑;压顶渐变对暗图够用,不再叠 */
-.cave { background-color: #0b2733; }
+/* 洞穴底色:10/09 起随季(--cave-* 令牌见 style.css 四季块)。
+   原来是写死的 #0b2733 + #77fbfc,成了全站唯一不随季的页面,进出小屋会整屏跳变。 */
+.cave { background-color: var(--cave-bg); }
 .cave-bg { object-position: center; }
 
-/* ---- 暗玻璃配方:洞门与墙板同源,场景专属色(--private-glow/warm)不随季 ---- */
+/* ---- 暗玻璃配方:洞门与墙板同源,强调光跟季走但保持"洞里"的暗调 ---- */
 .gate, .room {
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(119, 251, 252, 0.18);
-  color: #dfeef7;
+  border: 1px solid var(--cave-line);
+  color: var(--cave-text);
 }
 .gate {
   width: min(360px, 92vw); padding: 36px 30px 30px; text-align: center;
-  background: rgba(8, 30, 40, 0.72);
+  background: var(--cave-glass);
   border-radius: 18px;
   box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.65);
   animation: copy-rise 0.8s 0.3s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
@@ -211,18 +212,19 @@ async function lock() {
 .gate h1 {
   margin: 0; font-size: 32px; font-weight: 400;
   font-family: var(--font-display); letter-spacing: 0.24em; text-indent: 0.24em; color: #fff;
-  text-shadow: 0 0 22px rgba(119, 251, 252, 0.35);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--private-glow) 38%, transparent);
 }
 .gate-en {
   margin: 4px 0 14px; font-family: var(--font-serif); font-style: italic;
-  font-size: 13px; letter-spacing: 0.06em; color: rgba(119, 251, 252, 0.8);
+  font-size: 13px; letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--private-glow) 82%, transparent);
 }
-.gate-desc { font-size: 13.5px; color: rgba(223, 238, 247, 0.75); margin: 0 0 18px; }
+.gate-desc { font-size: 13.5px; color: var(--cave-text-soft); margin: 0 0 18px; }
 .gate :deep(.t-input__wrap) { margin-bottom: 14px; }
 
 .room {
   width: min(760px, 94vw);
-  background: rgba(9, 32, 42, 0.78);
+  background: var(--cave-glass);
   border-radius: 20px; padding: 30px clamp(16px, 4vw, 36px) 34px;
   animation: copy-rise 0.8s 0.25s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
 }
@@ -239,25 +241,28 @@ async function lock() {
 .room-head h1 + .room-en { margin: 2px 0 0; }
 .room-en {
   font-family: var(--font-serif); font-style: italic; font-size: 12.5px;
-  letter-spacing: 0.05em; color: rgba(223, 238, 247, 0.6);
+  letter-spacing: 0.05em; color: var(--cave-text-soft);
 }
 .tip { color: var(--private-warm); font-size: 13px; margin-top: 12px; }
 .shelf { margin-top: 28px; }
 .shelf h2 {
   font-size: 15px; letter-spacing: 0.12em; color: var(--private-glow);
-  border-bottom: 1px solid rgba(119, 251, 252, 0.25); padding-bottom: 8px;
+  border-bottom: 1px solid var(--cave-line); padding-bottom: 8px;
   display: flex; align-items: baseline; gap: 8px;
 }
-.shelf h2 span { font-size: 12px; color: rgba(223, 238, 247, 0.55); }
+.shelf h2 span { font-size: 12px; color: var(--cave-text-soft); }
 .row {
   display: flex; justify-content: space-between; align-items: center;
   padding: 10px 16px; margin-top: 10px; border-radius: 12px;
-  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(119, 251, 252, 0.15);
+  background: var(--cave-row); border: 1px solid var(--cave-line);
   transition: background-color 0.22s ease, border-color 0.22s ease;
 }
-.row:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(119, 251, 252, 0.32); }
-.row strong { color: #eef8fd; font-weight: 500; }
-.row em { font-style: normal; font-size: 12px; color: rgba(223, 238, 247, 0.6); }
+.row:hover {
+  background: var(--cave-row-hover);
+  border-color: color-mix(in srgb, var(--private-glow) 34%, transparent);
+}
+.row strong { color: var(--cave-text); font-weight: 500; }
+.row em { font-style: normal; font-size: 12px; color: var(--cave-text-soft); }
 /* 照片/资料行:缩略图(或类型徽章)+ 两行字,点开大图/触发下载 */
 .row-photo {
   width: 100%; font: inherit; text-align: left; cursor: pointer;
@@ -272,7 +277,7 @@ async function lock() {
 /* 就地开卷的纸面板:日记正文按站内亮色口径排版,垫在暗玻璃幕布上 */
 .cave-note {
   width: min(720px, 92vw); max-height: 86vh; overflow: auto;
-  background: #f8fbfc; color: var(--ink); border-radius: 16px;
+  background: var(--card); color: var(--ink); border-radius: 16px;
   padding: 24px clamp(18px, 4vw, 34px) 20px;
   box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.7);
   cursor: auto;
@@ -288,21 +293,22 @@ async function lock() {
   flex: none; width: 46px; text-align: center; text-transform: uppercase;
   font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.03em;
   padding: 6px 4px; border-radius: 8px;
-  background: rgba(119, 251, 252, 0.1); border: 1px solid rgba(119, 251, 252, 0.25);
+  background: color-mix(in srgb, var(--private-glow) 10%, transparent);
+  border: 1px solid var(--cave-line);
   color: var(--private-glow);
 }
 .row-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .row-text strong, .row-text em { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.none { color: rgba(223, 238, 247, 0.5); font-size: 13px; }
+.none { color: var(--cave-text-soft); font-size: 13px; }
 
 .cave-lightbox {
   position: fixed; inset: 0; z-index: 300;
-  background: rgba(4, 16, 24, 0.9);
+  background: color-mix(in srgb, var(--cave-bg) 92%, #000);
   backdrop-filter: blur(6px);
   display: flex; align-items: center; justify-content: center;
   cursor: zoom-out;
 }
 .cave-lightbox figure { margin: 0; text-align: center; }
 .cave-lightbox img { max-width: 88vw; max-height: 82vh; border-radius: 10px; }
-.cave-lightbox figcaption { margin-top: 12px; font-size: 13px; color: rgba(223, 238, 247, 0.85); }
+.cave-lightbox figcaption { margin-top: 12px; font-size: 13px; color: var(--cave-text); }
 </style>

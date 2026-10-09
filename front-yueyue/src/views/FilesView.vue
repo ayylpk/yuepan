@@ -13,11 +13,12 @@ import { langOf } from '@/utils/code'
 import CodePane from '@/components/CodePane.vue'
 import StageHero from '@/components/StageHero.vue'
 
-const PAGE_SIZE = 20 // 一屏 20 条,更多按钮翻页
+const PAGE_SIZE = 20 // 一页 20 条(10/09 统一口径:三页都用分页控件,不再"继续上架")
 
 const auth = useAuthStore()
 const files = ref<FileEntry[]>([])
 const total = ref(0)
+const page = ref(1)
 const loading = ref(true)
 const error = ref('')
 
@@ -44,13 +45,13 @@ const rawUrl = (f: FileEntry) => `/api/file/${f.id}/raw`
 const dlUrl = (f: FileEntry) => `/api/file/${f.id}/download`
 const fmtSize = (n: number) => (n > 1 << 20 ? (n / (1 << 20)).toFixed(1) + ' MB' : Math.round(n / 1024) + ' KB')
 
-async function load(append = false) {
+async function load() {
   loading.value = true
   error.value = ''
   try {
-    const page = append ? Math.floor(files.value.length / PAGE_SIZE) + 1 : 1
-    const res = await http.get<PageResult<FileEntry>>(`/api/file/page?page=${page}&page_size=${PAGE_SIZE}`)
-    files.value = append ? files.value.concat(res.data) : res.data
+    // 分页参数名是 page_size(file 端点自己的口径;diary 那边叫 size,以各端代码为准)
+    const res = await http.get<PageResult<FileEntry>>(`/api/file/page?page=${page.value}&page_size=${PAGE_SIZE}`)
+    files.value = res.data
     total.value = res.count
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败'
@@ -160,12 +161,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   <div>
     <!-- 和照片墙共用一张舞台图:两个页面本来就是同一间仓库的东墙和西墙 -->
     <StageHero
-      :img="asset('banner-photos')" title="资料"
+      variant="banner" :img="asset('banner-photos')" title="资料"
       en="files · the shelf" line="原名落盘;图片、PDF、文本代码点开即看,其余请下载"
     />
 
-    <div class="page-floor">
-      <div class="site-main">
+    <div class="site-main">
         <div class="toolbar">
           <p class="hint">{{ total ? `${total} 份在架` : '' }}</p>
           <t-button theme="primary" @click="upload.open = true">传资料</t-button>
@@ -175,7 +175,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <p v-if="error" class="load-error">{{ error }}</p>
           <template v-else-if="files.length">
             <ul class="fl-list stagger">
-              <li v-for="(f, i) in files" :key="f.id" class="glass-card fl-row" :style="{ '--i': i % PAGE_SIZE }">
+              <li v-for="(f, i) in files" :key="f.id" class="card fl-row" :style="{ '--i': i % PAGE_SIZE }">
                 <button type="button" class="fl-open" :aria-label="`打开 ${f.name}`" @click="openPreview(f)">
                   <span class="fl-ext" :class="`k-${kindOf(f)}`">{{ f.type || 'file' }}</span>
                   <span class="fl-text">
@@ -190,16 +190,16 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
                 </span>
               </li>
             </ul>
-            <p v-if="files.length < total" class="more-row">
-              <t-button variant="outline" :loading="loading" @click="load(true)">还有 {{ total - files.length }} 份,继续上架</t-button>
-            </p>
+            <t-pagination
+              v-if="total > PAGE_SIZE" v-model="page" :total="total" :page-size="PAGE_SIZE"
+              :show-jumper="false" class="pager" @change="load"
+            />
           </template>
           <div v-else-if="!loading" class="empty-state">
             <img v-img-fade :src="asset('empty')" alt="空" loading="lazy" />
             <p>架子还空,传第一份资料上来</p>
           </div>
         </t-loading>
-      </div>
     </div>
 
     <!-- 上传弹窗 -->
@@ -256,16 +256,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   border: none; background: none; padding: 0; font: inherit; color: inherit;
   text-align: left; cursor: pointer;
 }
-/* 类型徽章:配色按四档预览身份走,一眼看出点不点得开 */
+/* 类型徽章:配色按四档预览身份走,一眼看出点不点得开。
+   四色是"按能不能站内打开"分的语义档,不是装饰色,所以不随季(令牌见 style.css :root) */
 .fl-ext {
   flex: none; min-width: 46px; text-align: center; text-transform: uppercase;
   font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.04em;
   padding: 5px 7px; border-radius: 7px; color: #fff;
 }
-.k-image { background: #2e9e6b; }
-.k-pdf { background: #c05645; }
+.k-image { background: var(--badge-image); }
+.k-pdf { background: var(--badge-pdf); }
 .k-text { background: var(--sea-mid); }
-.k-other { background: #8a94a0; }
+.k-other { background: var(--badge-other); }
 .fl-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .fl-text strong {
   font-size: 14px; font-weight: 500; color: var(--ink);
@@ -275,7 +276,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .fl-ops { display: flex; align-items: center; gap: 4px; flex: none; }
 .fl-op { font-size: 13px; color: var(--brand); text-decoration: none; padding: 4px 8px; border-radius: 8px; }
 .fl-op:hover { background: var(--cloud); }
-.more-row { text-align: center; margin: 26px 0 4px; }
+.pager { margin-top: 24px; }
 .load-error { color: #c33; padding: 20px 0; }
 
 .up-form { display: flex; flex-direction: column; gap: 14px; }
@@ -290,8 +291,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 /* 直览弹窗各体 */
 .pv-img { display: block; max-width: 100%; max-height: 68vh; margin: 0 auto; border-radius: 8px; }
-.pv-pdf { display: block; width: 100%; height: 68vh; border: none; border-radius: 8px; background: #1e1e1e; }
-.pv-text { max-height: 68vh; overflow: auto; background: #1e1e1e; border-radius: 10px; }
+.pv-pdf { display: block; width: 100%; height: 68vh; border: none; border-radius: 8px; background: var(--code-bg); }
+.pv-text { max-height: 68vh; overflow: auto; background: var(--code-bg); border-radius: 10px; }
 .pv-off { text-align: center; padding: 30px 0 26px; color: var(--ink-soft); }
 .pv-off p { margin: 0 0 16px; }
 .pv-ops { margin: 12px 0 0; text-align: right; }

@@ -128,18 +128,17 @@ watch(() => route.query.repo, async (q) => {
 <template>
   <div>
     <StageHero
-      :img="asset('banner-code')" title="在线看代码"
+      variant="banner" :img="asset('banner-code')" title="在线看代码"
       en="code · the window desk" line="白名单仓库,树来自 git 清单,内容读的是本机工作区"
     />
 
-    <div class="page-floor">
-      <div class="site-main">
+    <div class="site-main">
       <p v-if="error" class="load-error">{{ error }}</p>
 
       <div v-if="repos.length" class="repo-bar stagger">
         <button
           v-for="(r, i) in repos" :key="r.name"
-          class="glass-card repo-chip" :class="{ on: r.name === current, dead: !r.exists }"
+          class="card repo-chip" :class="{ on: r.name === current, dead: !r.exists }"
           :style="{ '--i': i }"
           :disabled="!r.exists" :title="r.desc"
           @click="openRepo(r.name)"
@@ -156,7 +155,7 @@ watch(() => route.query.repo, async (q) => {
         <span class="admin-hint">动磁盘的操作,登录才露这两个按钮;pull 只做快进,有分叉会原样报错</span>
       </p>
 
-      <div v-if="current" class="workbench glass-card">
+      <div v-if="current" class="workbench card">
         <div class="side">
           <div class="tabs">
             <button :class="{ on: tab === 'files' }" @click="tab = 'files'">文件</button>
@@ -182,7 +181,6 @@ watch(() => route.query.repo, async (q) => {
           </template>
         </div>
       </div>
-      </div>
     </div>
   </div>
 </template>
@@ -190,12 +188,12 @@ watch(() => route.query.repo, async (q) => {
 <style scoped>
 .repo-bar { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
 .repo-chip {
-  border: 1px solid var(--line); background: var(--card); cursor: pointer;
+  border: 1px solid var(--card-line); background: var(--card); cursor: pointer;
   padding: 10px 16px; border-radius: 12px; text-align: left; font-family: inherit;
   display: flex; flex-direction: column; gap: 2px;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
-.repo-chip:hover:not(.dead, .on) { transform: translateY(-2px); border-color: color-mix(in srgb, var(--sea-mid) 55%, var(--line)); }
+.repo-chip:hover:not(.dead, .on) { transform: translateY(-2px); border-color: var(--brand); }
 .repo-chip.on { border-color: var(--brand); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent); }
 .repo-chip.dead { opacity: 0.45; cursor: not-allowed; }
 .repo-chip strong { font-size: 14px; color: var(--ink); }
@@ -203,7 +201,10 @@ watch(() => route.query.repo, async (q) => {
 /* 工作台随选中"浮出"(选中仓库挂载/重挂那一刻演一次) */
 .workbench {
   display: grid; grid-template-columns: 280px 1fr;
-  height: calc(100svh - 120px); min-height: 560px; /* 工作台近乎占满一屏,看代码不再憋着 */
+  /* 10/09:骨架换成窄横幅后,不能再从 100svh 里扣 120 了(那是"整屏舞台"的算法)。
+     按实际占位扣(banner-var + 仓库条 + 管理行约 420),上下限兜住极端屏:
+     下限 440 而不是 520——565px 高的窗口上,520 会把工作台整个推出首屏 */
+  height: clamp(440px, calc(100svh - 420px), 820px);
   animation: rise-in 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
   overflow: hidden; /* 右侧代码区整块刷成 VSCode 暗色,圆角靠这里裁住 */
 }
@@ -219,14 +220,15 @@ watch(() => route.query.repo, async (q) => {
 .log li { margin: 8px 0; }
 .log code { color: var(--sea-deep); margin-right: 4px; }
 .log em { display: block; font-style: normal; color: var(--ink-soft); font-size: 11px; }
-/* 右栏 = VSCode 编辑器壳:底色 #1e1e1e,和 vs2015 高亮主题同一家 */
-.pane { padding: 0; overflow: auto; min-height: 0; background: #1e1e1e; }
-.pane-hint { color: #858585; margin: 44px 0; text-align: center; font-size: 13px; }
+/* 右栏 = VSCode 编辑器壳:底色吃 --code-bg,和 vs2015 高亮主题同一家。
+   这两个令牌刻意不随季——换季换的是"界面层",代码阅读面保持稳定更利于长时间看 */
+.pane { padding: 0; overflow: auto; min-height: 0; background: var(--code-bg); }
+.pane-hint { color: var(--code-muted); margin: 44px 0; text-align: center; font-size: 13px; }
 /* 文件路径条 ≈ 编辑器页签带:竖滚时钉在顶部 */
 .crumb {
   position: sticky; top: 0; z-index: 2; margin: 0; padding: 9px 16px;
-  font-family: var(--font-mono); font-size: 12.5px; color: #ccc;
-  background: #2d2d30; border-bottom: 1px solid #3c3c3c; word-break: break-all;
+  font-family: var(--font-mono); font-size: 12.5px; color: var(--code-text);
+  background: var(--code-bar); border-bottom: 1px solid var(--code-line); word-break: break-all;
 }
 .admin-row { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; }
 .admin-hint { font-size: 12px; color: var(--ink-soft); }

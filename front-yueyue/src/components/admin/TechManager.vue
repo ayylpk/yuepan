@@ -93,7 +93,7 @@ onMounted(load)
 </script>
 
 <template>
-  <section class="glass-card admin-card">
+  <section class="card admin-card">
     <header class="admin-head">
       <h2>技术栈字典</h2>
       <div class="admin-tools">

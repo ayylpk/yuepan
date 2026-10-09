@@ -48,7 +48,7 @@ onMounted(async () => {
     <nav class="dock stagger" aria-label="站点栏目">
       <router-link
         v-for="(e, i) in ENTRIES" :key="e.to" :to="e.to"
-        class="dock-card glass-card" :style="{ '--i': i }"
+        class="dock-card card" :style="{ '--i': i }"
       >
         <img v-img-fade :src="asset(e.img)" :alt="e.zh" loading="lazy" />
         <div class="dock-text">

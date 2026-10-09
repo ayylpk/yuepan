@@ -24,3 +24,7 @@ Thumbs.db
 
 # —— 19MB 四季原图:本地留底,仓库只放压缩后的正式图 ——
 front-yueyue/src/assets/_originals/
+
+# —— 助手工作区:会话记忆 + 验收截图(3MB PNG),属本地资料不进库 ——
+# (10/09 前它一直是未跟踪状态;这里补上规则,免得哪天 git add -A 把它连截图一起推进去)
+.workbuddy/

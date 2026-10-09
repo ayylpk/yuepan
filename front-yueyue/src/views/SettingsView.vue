@@ -71,7 +71,7 @@ async function logout() {
     </header>
 
     <div class="set-grid">
-      <section class="glass-card set-card">
+      <section class="card set-card">
         <h2>账号</h2>
         <p class="now">当前用户:<strong>{{ auth.username }}</strong> · 小屋{{ auth.private ? '灯亮着' : '锁着' }}</p>
         <t-input v-model="name.value" placeholder="新用户名" />
@@ -81,7 +81,7 @@ async function logout() {
         <t-button variant="text" theme="danger" @click="logout">退出登录</t-button>
       </section>
 
-      <section class="glass-card set-card">
+      <section class="card set-card">
         <h2>主密码</h2>
         <p class="now">整站大门的钥匙</p>
         <t-input v-model="pwd.old" type="password" placeholder="原密码" />
@@ -90,7 +90,7 @@ async function logout() {
         <t-button theme="primary" variant="outline" :loading="busy === 'pwd'" @click="savePwd">改主密码</t-button>
       </section>
 
-      <section class="glass-card set-card">
+      <section class="card set-card">
         <h2>小屋解锁密码</h2>
         <p class="now">第二道锁的锁芯</p>
         <t-input v-model="priv.old" type="password" placeholder="原解锁密码" />

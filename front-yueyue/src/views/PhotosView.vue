@@ -10,10 +10,11 @@ import type { PageResult, Photo } from '@/api/types'
 import { asset } from '@/stores/season'
 import StageHero from '@/components/StageHero.vue'
 
-const PAGE_SIZE = 24 // 一墙 24 张,更多按钮翻页
+const PAGE_SIZE = 24 // 一墙 24 张(10/09 统一口径:分页控件翻页,不再"继续挂")
 
 const photos = ref<Photo[]>([])
 const total = ref(0)
+const page = ref(1)
 const loading = ref(true)
 const error = ref('')
 
@@ -29,13 +30,12 @@ function fmtSize(n: number) {
   return Math.round(n / 1024) + ' KB'
 }
 
-async function load(append = false) {
+async function load() {
   loading.value = true
   error.value = ''
   try {
-    const page = append ? Math.floor(photos.value.length / PAGE_SIZE) + 1 : 1
-    const res = await http.get<PageResult<Photo>>(`/api/photo/page?page=${page}&page_size=${PAGE_SIZE}`)
-    photos.value = append ? photos.value.concat(res.data) : res.data
+    const res = await http.get<PageResult<Photo>>(`/api/photo/page?page=${page.value}&page_size=${PAGE_SIZE}`)
+    photos.value = res.data
     total.value = res.count
   } catch (e) {
     error.value = e instanceof Error ? e.message : '加载失败'
@@ -58,6 +58,7 @@ async function doUpload() {
     const created = await postForm<Photo>('/api/photo', form)
     MessagePlugin.success(upload.private ? '已收进小屋' : `钉上墙了:${created.name}`)
     Object.assign(upload, { open: false, file: null, type: '', private: false })
+    page.value = 1 // 新图回第一页:不然站在第 3 页挂完,会以为没上去
     await load()
   } catch (e) {
     MessagePlugin.error(e instanceof ApiError ? e.message : '上传失败')
@@ -114,7 +115,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <p v-if="error" class="load-error">{{ error }}</p>
           <template v-else-if="photos.length">
             <div class="ph-grid stagger">
-              <figure v-for="(p, i) in photos" :key="p.id" class="glass-card ph-card" :style="{ '--i': i % PAGE_SIZE }">
+              <figure v-for="(p, i) in photos" :key="p.id" class="card ph-card" :style="{ '--i': i % PAGE_SIZE }">
                 <button class="ph-shot" type="button" :aria-label="`放大看 ${p.name}`" @click="viewer = p">
                   <img v-img-fade :src="srcOf(p)" :alt="p.name" loading="lazy" />
                 </button>
@@ -127,9 +128,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
                 </figcaption>
               </figure>
             </div>
-            <p v-if="photos.length < total" class="more-row">
-              <t-button variant="outline" :loading="loading" @click="load(true)">还有 {{ total - photos.length }} 张,继续挂</t-button>
-            </p>
+            <t-pagination
+              v-if="total > PAGE_SIZE" v-model="page" :total="total" :page-size="PAGE_SIZE"
+              :show-jumper="false" class="pager" @change="load"
+            />
           </template>
           <div v-else-if="!loading" class="empty-state">
             <img v-img-fade :src="asset('empty')" alt="空" loading="lazy" />
@@ -184,7 +186,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ph-meta em { display: block; font-style: normal; font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
-.more-row { text-align: center; margin: 26px 0 4px; }
+.pager { margin-top: 26px; }
 .up-form { display: flex; flex-direction: column; gap: 14px; }
 .file-pick span {
   display: block; padding: 14px; text-align: center; cursor: pointer;

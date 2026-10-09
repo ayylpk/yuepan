@@ -5,6 +5,8 @@
 //   .stage__shift 滚动视差(背景以 ~0.18 倍速滞后,rAF 节流;幅度=溢出量,克制着来)
 //   .stage__img×2 双层交叉溶解(换季 src 变化时新图预载→旧层淡出,硬切绝迹)
 // 标题锁版 = 楷体大字 + Georgia 斜体伴行 + 可选一句话,左下浮动,错峰入场。
+// 10/09 重塑:加 variant —— full 是入口页的整屏舞台(照旧),
+// banner 是工具页的窄封面(~260px),两套只有高度/字号/视差之差,共用同一份溶解逻辑。
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 const props = withDefaults(defineProps<{
@@ -14,7 +16,11 @@ const props = withDefaults(defineProps<{
   line?: string      // 主标下的一小句话(首页用)
   pos?: string       // object-position 按图构图微调(如 code 图安静区偏右)
   hint?: boolean     // 底部"往下滚"的潮线箭头(首页船坞卡要它就让位)
-}>(), { pos: 'center', hint: true })
+  variant?: 'full' | 'banner' // full=入口页整屏舞台;banner=工具页窄横幅(10/09 新增)
+}>(), { pos: 'center', hint: true, variant: 'full' })
+
+// 窄横幅只有一个屏幕高的零头,再挂"往下滚"的箭头就成了噪音
+const showHint = computed(() => props.variant === 'full' && props.hint)
 
 // ---- 双层交叉溶解 ----
 const layers = ref([
@@ -55,7 +61,8 @@ function onScroll() {
   })
 }
 onMounted(() => {
-  if (reduceMotion) return
+  // banner 变体不做视差:横幅只有 200 来像素,0.18 的滞后在这里只会变成"图片在抖"
+  if (reduceMotion || props.variant === 'banner') return
   onScroll()
   window.addEventListener('scroll', onScroll, { passive: true })
 })
@@ -68,7 +75,7 @@ const shiftStyle = computed(() => ({ transform: shift.value }))
 </script>
 
 <template>
-  <header ref="stageEl" class="stage" :style="{ '--hero-pos': pos }">
+  <header ref="stageEl" class="stage" :class="`stage--${variant}`" :style="{ '--hero-pos': pos }">
     <div class="stage__bg" aria-hidden="true">
       <div class="stage__shift" :style="shiftStyle">
         <img
@@ -87,7 +94,7 @@ const shiftStyle = computed(() => ({ transform: shift.value }))
       <slot />
     </div>
 
-    <div v-if="hint" class="stage__hint" aria-hidden="true"><span /></div>
+    <div v-if="showHint" class="stage__hint" aria-hidden="true"><span /></div>
   </header>
 </template>
 
@@ -176,4 +183,22 @@ const shiftStyle = computed(() => ({ transform: shift.value }))
   0%, 100% { transform: translate(-50%, 0); opacity: 0.5; }
   50%      { transform: translate(-50%, 7px); opacity: 1; }
 }
+
+/* ---------- banner 变体:工具页的封面(10/09 新增) ----------
+   它只是一个封条,不是第一屏:高度收进 --banner-h,
+   进场缓推与滚动视差都撤掉(短横幅做运动会变成"图片在抖"),
+   压字渐变只留底部一层(横幅顶端落在实底顶栏下面,不需要再压一道),
+   标题降到标题三级里的 L1 规格——从此内页标题高度恒定。 */
+.stage--banner { min-height: var(--banner-h); }
+.stage--banner .stage__bg { animation: none; }
+.stage--banner .stage__shift { top: 0; height: 100%; }
+.stage--banner .stage__scrim { background: linear-gradient(to top, var(--scrim), transparent 74%); }
+.stage--banner .stage__copy { padding: 0 clamp(16px, 4vw, 32px) 18px; }
+.stage--banner .stage__copy h1 {
+  font-size: clamp(26px, 3.2vw, 38px);
+  letter-spacing: 0.1em;
+  animation-duration: 0.6s;
+}
+.stage--banner .stage__en { margin-top: 5px; font-size: clamp(12.5px, 1.2vw, 14px); }
+.stage--banner .stage__line { margin-top: 6px; font-size: 13px; }
 </style>

@@ -17,8 +17,8 @@
   --sand: #fbf1e5;         /* login.png 沙滩 */
   --brand: #1991f8;        /* page404.png 天空蓝(强调) */
   --cloud: #cbe8fc;        /* page404.png 云白 */
-  --private-glow: #77fbfc; /* banner-private.png 洞穴霓虹青(场景专属色,不随季) */
-  --private-warm: #947d65; /* banner-private.png 暖灯光(同上) */
+  --private-glow: #77fbfc; /* 10/09 起随季:夏=洞穴霓虹青(原固定值,现为夏档) */
+  --private-warm: #947d65; /* 夏=洞内暖灯光 */
 
   /* 推导色:亮色系里没有可当正文的深色,文字锚按海平线夜色压暗 */
   --ink: #0e3a5c;
@@ -30,7 +30,46 @@
   --line: #dcf0fb;
   --shadow: 0 10px 30px -12px rgba(20, 90, 140, 0.25);
   --scrim: rgba(9, 42, 68, 0.66); /* 舞台标题压底渐层的深色端(每季一档) */
-  --header-h: 64px;
+  --header-h: 56px; /* 10/09 重塑:64 → 56,顶栏只留品牌/四季/用户/汉堡 */
+
+  /* ---------- 骨架高度 ---------- */
+  /* 工具页(笔记/项目/资料/代码)的窄横幅高度。
+     10/09 实测回调过一次:下限 190px 在 565px 高的视口上要吃掉 34% 屏,
+     工具栏被推到 0.49 屏处。现在下限 160 / 上限 244,内容起点稳定落在 0.3 屏上下 */
+  --banner-h: clamp(160px, 22vh, 244px);
+
+  /* ---------- 任务区卡片 ---------- */
+  /* 描边 = 品牌色与页面线的混合。var() 在 color-mix 里是使用期求值,
+     所以换季只改 --brand/--line,这条自动跟着走,不用四季各写一遍。 */
+  --card-line: color-mix(in srgb, var(--brand) 30%, var(--line));
+  --card-shadow: 0 1px 2px rgba(20, 60, 100, 0.06);
+  --card-shadow-hover: 0 8px 22px -10px rgba(20, 90, 140, 0.32);
+
+  /* ---------- 工具型深色面(代码编辑器 / PDF 预览) ---------- */
+  /* 刻意不随季:高亮主题 vs2015 只认深底,随季换底色会同时改掉语法色的对比关系。
+     集中成令牌只为让硬编码不再散落在各视图里。 */
+  --code-bg: #1e1e1e;
+  --code-bar: #2d2d30;
+  --code-line: #3c3c3c;
+  --code-text: #d4d4d4;
+  --code-muted: #858585;
+
+  /* ---------- 资料类型徽章 ---------- */
+  /* 按"能不能站内直接打开"分档,是语义色不是装饰色,所以不随季 */
+  --badge-image: #2e9e6b;
+  --badge-pdf: #c05645;
+  --badge-other: #8a94a0;
+
+  /* ---------- 小屋(洞穴)暗色面 ---------- */
+  /* 跟季走,但保持"洞里"该有的暗调:每季一个深色变体 + 一个季节强调光。
+     这套替代了原来写死在 PrivateView 里的 #0b2733 / #77fbfc。 */
+  --cave-bg: #0b2733;
+  --cave-glass: rgba(9, 32, 42, 0.78);
+  --cave-line: rgba(119, 251, 252, 0.2);
+  --cave-row: rgba(255, 255, 255, 0.06);
+  --cave-row-hover: rgba(255, 255, 255, 0.11);
+  --cave-text: #dfeef7;
+  --cave-text-soft: rgba(223, 238, 247, 0.6);
 
   /* 字体:本地站不引 webfont。楷体做大字标题(配动漫风景有"海边手写信"气质),
      英文伴行小字走 Georgia 衬线;正文保持系统无衬线栈。 */
@@ -48,8 +87,9 @@
 }
 
 /* ---------- 四季皮肤:每季补全同一键集(9/16 旧版漏了 card/line/shadow,
-   秋天页面还挂着夏日浅蓝边框,这次一并补齐)。春/冬图未出,点击暂不启用,
-   色板先行(见 season.ts 的 SEASONS_IMAGE_READY) ---------- */
+   秋天页面还挂着夏日浅蓝边框,这次一并补齐)。四套配图 9/26 已全部落位,
+   四季均可点(见 season.ts 的 SEASONS_IMAGE_READY)。
+   10/09 起每季再补 5 个"小屋暗色"键:洞穴也随季,不再单独一块固定色。 ---------- */
 html[data-season='spring'] {
   --sea-deep: #4aa88e; --sea-mid: #6cc298; --sea-light: #8fd6a4; --foam: #b8e6b0;
   --brand: #2fa06d; --sky: #bfe8cf; --cloud: #e6f6e9; --sand: #f7f3e3;
@@ -57,6 +97,8 @@ html[data-season='spring'] {
   --card: #fdfff9; --line: #dcefdc;
   --shadow: 0 10px 30px -12px rgba(40, 100, 66, 0.24);
   --scrim: rgba(16, 56, 36, 0.62);
+  --cave-bg: #0e2318; --cave-glass: rgba(12, 34, 22, 0.78); --cave-line: rgba(150, 240, 190, 0.2);
+  --private-glow: #8df3bc; --private-warm: #cfa87a;
 }
 html[data-season='autumn'] {
   --sea-deep: #b4653a; --sea-mid: #d08a4e; --sea-light: #e4b26e; --foam: #f0d29a;
@@ -65,6 +107,8 @@ html[data-season='autumn'] {
   --card: #fffdf9; --line: #f0e2cc;
   --shadow: 0 10px 30px -12px rgba(130, 74, 22, 0.26);
   --scrim: rgba(66, 32, 8, 0.64);
+  --cave-bg: #201208; --cave-glass: rgba(38, 22, 10, 0.78); --cave-line: rgba(255, 200, 130, 0.2);
+  --private-glow: #ffc07a; --private-warm: #e0a163;
 }
 html[data-season='winter'] {
   --sea-deep: #5d87b8; --sea-mid: #86a9d0; --sea-light: #aecbe8; --foam: #d8eaf8;
@@ -73,6 +117,8 @@ html[data-season='winter'] {
   --card: #ffffff; --line: #dde9f4;
   --shadow: 0 10px 30px -12px rgba(50, 84, 120, 0.26);
   --scrim: rgba(16, 36, 58, 0.66);
+  --cave-bg: #0d1a26; --cave-glass: rgba(14, 28, 42, 0.78); --cave-line: rgba(180, 215, 245, 0.2);
+  --private-glow: #b9dcff; --private-warm: #b0a08c;
 }
 
 /* ---------- 基础 ---------- */
@@ -100,9 +146,11 @@ a { color: inherit; text-decoration: none; }
 
 /* ---------- 换季溶解:仅挂类的 650ms 内存在,让"不可过渡的变量"所在表面软着陆 ---------- */
 html.season-morph body,
-html.season-morph .glass-card,
+html.season-morph .card,
+html.season-morph .glass-overlay,
 html.season-morph .site-header,
 html.season-morph .site-footer,
+html.season-morph .nav-drawer,
 html.season-morph .page-floor {
   transition: background-color 0.55s ease, border-color 0.55s ease, color 0.55s ease, box-shadow 0.55s ease;
 }
@@ -116,7 +164,9 @@ html.season-morph .page-floor {
   padding: 28px clamp(16px, 4vw, 32px) 64px;
 }
 
-/* 舞台之下、正文之上的"地板"带:抬边压住舞台缝,第一屏内容露出一角作钩子 */
+/* 舞台之下、正文之上的"地板"带:抬边压住舞台缝。
+   10/09 重塑后只给 stage 骨架(首页/照片)用——工具页改窄横幅,内容直接接在下面,
+   不再靠负 margin 把正文拖到第二屏。 */
 .page-floor {
   position: relative;
   z-index: 2;
@@ -153,13 +203,23 @@ html.season-morph .page-floor {
 /* 无舞台页(设置/笔记详情)的小标题锁版。
    纯锁版不带容器 padding——页面已在 .site-main 里,顶栏让位也吃了 .site-body 的 padding-top */
 .page-head { margin: 0 0 24px; }
+/* ---------- 标题三级(10/09 重塑) ----------
+   旧版有两套互不通用的标题:舞台页 h1 是楷体 42–72px 白字压图,
+   无舞台页 .page-head h2 是楷体 28–40px 墨字——层级忽高忽低。
+   现在收敛成三级,内页标题高度恒定:
+     L1 页级   = .page-head h2(楷体,本处)
+     L2 区块级 = .sec-title
+     L3 元信息 = .meta-text
+   42–72px 那一档只保留在首页 .stage__copy h1。 */
 .page-head h2 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(28px, 4.4vw, 40px);
-  letter-spacing: 0.12em;
+  font-size: clamp(26px, 3.2vw, 38px);
+  letter-spacing: 0.1em;
 }
+.sec-title { margin: 0 0 12px; font-size: 17px; font-weight: 500; color: var(--ink); letter-spacing: 0.02em; }
+.meta-text { font-size: 12.5px; color: var(--ink-soft); }
 .page-head .en {
   margin: 4px 0 0;
   font-family: var(--font-serif);
@@ -169,8 +229,21 @@ html.season-morph .page-floor {
   color: var(--ink-soft);
 }
 
-/* 玻璃卡片(表面配方;hover 反馈归各交互卡自己管,不搞全局齐抬) */
-.glass-card {
+/* ---------- 表面配方:任务区用 .card,氛围浮层用 .glass-overlay ----------
+   10/09 重塑:旧版只有一条 .glass-card(半透明 86% + blur 12px + 极浅同色系描边),
+   在亮色页面上几乎看不出卡片边界——"哪里能点"失焦,这是可用性问题而不只是审美。
+   现在拆开:任务区必须"有形"(实色 + 季节色细边 + 可计算的对比),
+   玻璃只留给压在整屏插画上的浮层(登录卡 / 404 卡 / 首页船坞卡的氛围位)。
+   hover 反馈仍归各交互卡自己管,不在这里搞全局齐抬。 */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.glass-overlay {
   background: color-mix(in srgb, var(--card) 86%, transparent);
   backdrop-filter: blur(12px);
   border: 1px solid var(--line);
@@ -230,7 +303,7 @@ html.season-morph .page-floor {
   padding: 2px 6px; border-radius: 6px;
 }
 .md-body pre {
-  background: #1e1e1e; border-radius: 12px; /* 和代码页同一家 VSCode 默认底 */
+  background: var(--code-bg); border-radius: 12px; /* 和代码页同一家 VSCode 默认底(令牌见 :root) */
   padding: 16px; overflow-x: auto;
 }
 .md-body pre code { background: none; padding: 0; color: inherit; }

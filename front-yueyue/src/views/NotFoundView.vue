@@ -11,7 +11,7 @@ const router = useRouter()
     <img v-img-fade class="full-stage__bg" :src="asset('page404')" alt="" />
     <div class="full-stage__scrim" aria-hidden="true" />
 
-    <div class="nf-card glass-card">
+    <div class="nf-card glass-overlay">
       <h1>404</h1>
       <p class="nf-en">lost beyond the tide line</p>
       <p class="nf-say">这个地址没有对应的页面。</p>

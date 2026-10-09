@@ -80,7 +80,7 @@ onBeforeUnmount(() => {
     <img v-img-fade class="full-stage__bg" :src="asset('login')" alt="" />
     <div class="full-stage__scrim" aria-hidden="true" />
 
-    <div class="login-card glass-card" :class="{ shown: revealed }" @focusin="setShown(true)">
+    <div class="login-card glass-overlay" :class="{ shown: revealed }" @focusin="setShown(true)">
       <img class="login-logo" :src="asset('logo')" alt="logo" />
       <h1>月畔小站</h1>
       <p class="login-en">yueyue · a private coast</p>

@@ -42,13 +42,13 @@ onMounted(load)
 <template>
   <div>
     <StageHero
-      :img="asset('banner-notes')" title="日记"
+      variant="banner" :img="asset('banner-notes')" title="日记"
       en="notes · a private coast" line="markdown 原样落库,隐私篇目收在小屋里"
     />
 
-    <div class="page-floor">
-      <div class="site-main">
+    <div class="site-main">
         <div class="toolbar">
+          <p class="hint">共 {{ total }} 篇</p>
           <t-input
             v-model="keyword" placeholder="搜标题/正文,回车即搜" clearable
             style="max-width: 280px" @enter="() => { page = 1; load() }" @clear="() => { page = 1; load() }"
@@ -61,7 +61,7 @@ onMounted(load)
           <div v-else-if="diaries.length" class="note-grid stagger">
             <router-link
               v-for="(d, i) in diaries" :key="d.id" :to="`/notes/${d.id}`"
-              class="glass-card note-card" :style="{ '--i': i }"
+              class="card note-card" :style="{ '--i': i }"
             >
               <h3>{{ d.title }}</h3>
               <p class="excerpt">{{ d.content.slice(0, 66) }}{{ d.content.length > 66 ? '…' : '' }}</p>
@@ -81,22 +81,22 @@ onMounted(load)
           v-if="total > size" v-model="page" :total="total" :page-size="size"
           :show-jumper="false" class="pager" @change="load"
         />
-      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.toolbar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+.hint { margin: 0; color: var(--ink-soft); font-size: 14px; }
 .toolbar :deep(.t-button) { margin-left: auto; }
 /* 加载期占位高度,数据到位前不塌缩跳动 */
 .load-region { min-height: 260px; }
 .note-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-.note-card { padding: 18px 20px; display: block; transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease; }
+.note-card { padding: 18px 20px; display: block; transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease; }
 .note-card:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in srgb, var(--sea-mid) 55%, var(--line));
-  box-shadow: 0 16px 34px -16px rgba(20, 90, 140, 0.38);
+  border-color: var(--brand);
+  box-shadow: var(--card-shadow-hover);
 }
 .note-card h3 { margin: 0 0 8px; font-size: 17px; color: var(--ink); }
 .excerpt {
