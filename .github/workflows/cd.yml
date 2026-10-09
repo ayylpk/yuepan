@@ -39,38 +39,63 @@ jobs:
     runs-on: ubuntu-latest
     # 统一在这里做"别名兼容":左边优先,取不到就用备选。
     # 集中一处,下面调用时只写 env.X,不会漏改。
+    # 兼容的命名很宽:短的(IP/NAME/KEY/HOST/USER)和长的都认,还认 vars.*
+    # (即使用户把它们建成了 Variables 而不是 Secrets 也能跑 —— 但 Secrets 更安全,推荐前者)。
     env:
-      DEP_HOST: ${{ secrets.SSH_HOST || secrets.SERVER_HOST || secrets.HOST }}
-      DEP_USER: ${{ secrets.SSH_USER || secrets.SERVER_USER || secrets.USERNAME }}
-      DEP_KEY: ${{ secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY || secrets.SSH_KEY_TEXT }}
-      DEP_PORT: ${{ secrets.SSH_PORT || secrets.SERVER_PORT || '22' }}
+      DEP_HOST: >-
+        ${{ secrets.YUEPANIP || secrets.YUEPAN_IP || secrets.SSH_HOST || secrets.SERVER_HOST
+            || secrets.HOST || secrets.IP || secrets.SERVER_IP || secrets.ADDRESS || secrets.DOMAIN
+            || vars.SSH_HOST || vars.HOST || vars.IP || vars.SERVER_IP }}
+      DEP_USER: >-
+        ${{ secrets.SSH_USER || secrets.SERVER_USER || secrets.USER || secrets.USERNAME
+            || secrets.NAME || secrets.LOGIN
+            || vars.SSH_USER || vars.USER || vars.NAME }}
+      DEP_KEY: >-
+        ${{ secrets.SSH_KEY || secrets.SSH_PRIVATE_KEY || secrets.KEY || secrets.PRIVATE_KEY
+            || secrets.SERVER_KEY || vars.SSH_KEY || vars.KEY }}
+      DEP_PORT: ${{ secrets.SSH_PORT || secrets.SERVER_PORT || secrets.PORT || '22' }}
       DEPLOY_DIR: ${{ vars.DEPLOY_DIR || secrets.DEPLOY_DIR || '/srv/yuepan' }}
     steps:
       # 老版本这里写了 script_stop: true —— v1 已移除该参数(只认脚本文本里的 set -e),
       # 传了不会有副作用,但每次跑都会多一条 "Unexpected input(s)" 警告,所以撤掉。
       - name: 检查 Secrets 是否齐全(缺哪个点名报哪个)
-        # 逐个探测各个候选名字有没有值,好让你直接看出"是名字不对"还是"压根没建"
+        # 逐个探测各个候选名字有没有值,好让你直接看出"是名字不对"还是"压根没建"。
+        # 覆盖短名(IP/HOST/NAME/KEY)与长名两套,并且 Secrets / Variables 都探一遍。
         env:
-          P_SSH_HOST: ${{ secrets.SSH_HOST }}
-          P_SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          P_SSH_USER: ${{ secrets.SSH_USER }}
-          P_SERVER_USER: ${{ secrets.SERVER_USER }}
-          P_SSH_KEY: ${{ secrets.SSH_KEY }}
-          P_SERVER_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          P_HOST_1: ${{ secrets.YUEPANIP }}
+          P_HOST_2: ${{ secrets.SSH_HOST }}
+          P_HOST_3: ${{ secrets.SERVER_HOST }}
+          P_HOST_4: ${{ secrets.HOST }}
+          P_HOST_5: ${{ secrets.IP }}
+          P_IP_VAR: ${{ vars.IP }}
+          P_HOST_VAR: ${{ vars.HOST }}
+          P_USER_1: ${{ secrets.SSH_USER }}
+          P_USER_2: ${{ secrets.SERVER_USER }}
+          P_USER_3: ${{ secrets.NAME }}
+          P_USER_4: ${{ secrets.USER }}
+          P_NAME_VAR: ${{ vars.NAME }}
+          P_USER_VAR: ${{ vars.USER }}
+          P_KEY_1: ${{ secrets.SSH_KEY }}
+          P_KEY_2: ${{ secrets.SSH_PRIVATE_KEY }}
+          P_KEY_3: ${{ secrets.KEY }}
+          P_KEY_4: ${{ secrets.PRIVATE_KEY }}
+          P_KEY_VAR: ${{ vars.KEY }}
         run: |
           # 诊断信息一律走 ::notice:: / ::error:: ——它们会成为 check-run 注解,
           # 不用登录也能读到(公开仓库的注解接口匿名可访问),省得为看一行日志去翻网页。
+          # 注意:注解只收单行,整张表必须挤在一行里输出。
           mark() { if [ -n "$1" ]; then printf '已配'; else printf '未配'; fi; }
-          echo "::notice::Secret 命中表 | 地址: SSH_HOST=$(mark "$P_SSH_HOST") SERVER_HOST=$(mark "$P_SERVER_HOST") | 用户: SSH_USER=$(mark "$P_SSH_USER") SERVER_USER=$(mark "$P_SERVER_USER") | 私钥: SSH_KEY=$(mark "$P_SSH_KEY") SSH_PRIVATE_KEY=$(mark "$P_SERVER_KEY")"
+          echo "::notice::命中表(值不打印) | 地址: YUEPANIP=$(mark "$P_HOST_1") SSH_HOST=$(mark "$P_HOST_2") SERVER_HOST=$(mark "$P_HOST_3") HOST=$(mark "$P_HOST_4") IP=$(mark "$P_HOST_5") vars.IP=$(mark "$P_IP_VAR") vars.HOST=$(mark "$P_HOST_VAR") | 用户: SSH_USER=$(mark "$P_USER_1") SERVER_USER=$(mark "$P_USER_2") NAME=$(mark "$P_USER_3") USER=$(mark "$P_USER_4") vars.NAME=$(mark "$P_NAME_VAR") vars.USER=$(mark "$P_USER_VAR") | 私钥: SSH_KEY=$(mark "$P_KEY_1") SSH_PRIVATE_KEY=$(mark "$P_KEY_2") KEY=$(mark "$P_KEY_3") PRIVATE_KEY=$(mark "$P_KEY_4") vars.KEY=$(mark "$P_KEY_VAR")"
 
           miss=""
-          if [ -z "$DEP_HOST" ]; then miss=1; echo "::error::缺 Secret「服务器地址」——建 SSH_HOST(或 SERVER_HOST)"; fi
-          if [ -z "$DEP_USER" ]; then miss=1; echo "::error::缺 Secret「登录用户」——建 SSH_USER(或 SERVER_USER)"; fi
-          if [ -z "$DEP_KEY"  ]; then miss=1; echo "::error::缺 Secret「私钥」——建 SSH_KEY(或 SSH_PRIVATE_KEY)"; fi
+          if [ -z "$DEP_HOST" ]; then miss=1; echo "::error::缺「服务器地址」——建 YUEPANIP / SSH_HOST / SERVER_HOST / HOST / IP 任一"; fi
+          if [ -z "$DEP_USER" ]; then miss=1; echo "::error::缺「登录用户」——建 SSH_USER / SERVER_USER / NAME / USER 任一"; fi
+          if [ -z "$DEP_KEY"  ]; then miss=1; echo "::error::缺「私钥」——建 SSH_KEY / SSH_PRIVATE_KEY / KEY / PRIVATE_KEY 任一"; fi
           if [ -n "$miss" ]; then
-            echo "建的位置:Settings → Secrets and variables → Actions 的 **Secrets** 标签页(Repository secrets)。"
-            echo "常见错法:建成了 Variables(那是明文,要用 vars. 取);或建成 Environment secret(需在 job 里声明 environment 才生效)。"
+            echo "建的位置:Settings → Secrets and variables → Actions 的 Secrets 标签页(Repository secrets)。"
+            echo "常见错法:建成了 Variables(要用 vars. 取,本文件已兼容);或建成 Environment secret(需在 job 里声明 environment 才生效)。"
             echo "网页地址:https://github.com/${{ github.repository }}/settings/secrets/actions"
+            echo "若你的名字不在这张表里,直接改 cd.yml 顶部 env 那几行加上即可。"
             exit 1
           fi
           echo "地址、用户、私钥均已取到(值不打印),私钥长度 ${#DEP_KEY} 字符"
