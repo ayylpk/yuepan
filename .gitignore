@@ -10,11 +10,21 @@ __pycache__/
 *.db-journal
 *.sqlite*
 
-# —— 密钥类(现在没有,防以后手滑)——
+# —— 密钥类:绝对不进库(这个仓库是 public)——
 *.key
 *.pem
 .env.production
 .env.local
+
+# 10/09 加:部署私钥一度被放在仓库根的 .ssh/ 里(git_actions / git_actions.pub)。
+# 私钥文件不该出现在项目目录内 —— 放在这里等于"离被 commit 只差一次 git add -A"。
+# 顺手把常见密钥命名一起挡掉,防以后再手滑:
+.ssh/
+id_rsa*
+id_ed25519*
+id_ecdsa*
+id_dsa*
+*.ppk
 
 # —— 编辑器/系统杂物 ——
 .idea/
@@ -28,3 +38,11 @@ front-yueyue/src/assets/_originals/
 # —— 助手工作区:会话记忆 + 验收截图(3MB PNG),属本地资料不进库 ——
 # (10/09 前它一直是未跟踪状态;这里补上规则,免得哪天 git add -A 把它连截图一起推进去)
 .workbuddy/
+
+# —— 部署(10/09):compose 的本地环境变量与运行期数据 ——
+# .env 由 .env.example 复制而来,含服务器实际路径,不进库
+.env
+# data/ 是 compose 的数据落地目录:resources/(SQLite 库 + 照片 + 资料原件)
+# 已由上面的 *.db 覆盖一部分,但 resources/ 下的照片/资料文件必须整棵排除
+data/
+resources/

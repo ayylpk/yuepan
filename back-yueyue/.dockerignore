@@ -1,0 +1,22 @@
+# 构建上下文里不要这些:装进镜像会让镜像变大,而且可能把本机数据烤进去
+.venv/
+__pycache__/
+*.pyc
+
+# 运行期数据:数据库 + 上传的照片/资料原件。
+# 【关键】绝不能进镜像 —— 一是会把你的私密内容固化到镜像层里,
+# 二是运行期它会被 volume 覆盖,带进去也没用
+resources/
+*.db
+*.db-journal
+*.sqlite*
+
+# 冒烟测试的样例与脚本不需要进运行时镜像
+smoke/
+smoke_test.py
+
+# 编辑器/系统杂物
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store

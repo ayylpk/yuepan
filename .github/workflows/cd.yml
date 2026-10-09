@@ -1,0 +1,66 @@
+# 月畔小站 · CD(部署到服务器)
+#
+# 走"路线 2":SSH 进服务器,就地 git 拉取 + docker compose 重建。
+# 不用镜像仓库(GHCR)那套,因为服务器本来就要装 Docker 构建环境,少一个环节少一处坑。
+#
+# 【必须在 GitHub 仓库里配好这些,否则这个工作流会红】
+#   Settings → Secrets and variables → Actions
+#   Secrets(加密):
+#     SSH_HOST   服务器 IP 或域名
+#     SSH_USER   登录用户
+#     SSH_KEY    私钥全文(-----BEGIN ... 到 END ... 整段粘贴)
+#     SSH_PORT   可选,默认 22
+#   Variables(明文,可选):
+#     DEPLOY_DIR 服务器上的部署目录,默认 /srv/yuepan
+#
+# 触发条件:CI 跑完 **且成功** 才部署。CI 失败或被取消 = 这里什么都不做。
+# 也可以手动触发(Actions 页面点 Run workflow)用来重发一次。
+name: CD
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd-main
+  cancel-in-progress: false # 部署不能被打断,排队跑
+
+jobs:
+  deploy:
+    name: 部署到服务器
+    # 手动触发,或者 CI 真的绿了。CI 失败/取消都不动服务器
+    if: >-
+      github.event_name == 'workflow_dispatch'
+      || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 远程拉取并重启容器
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          # script_stop:任何一步失败就中断,别在失败状态下继续重启容器
+          script_stop: true
+          script: |
+            set -e
+            cd "${{ vars.DEPLOY_DIR || '/srv/yuepan' }}"
+
+            # 部署目录是个 git clone。git reset --hard 只回退被跟踪的文件,
+            # 不会动未跟踪的 data/(数据)与 .env(配置)—— 这两个刻意不进库。
+            git fetch --all --prune
+            git reset --hard "${{ github.event.workflow_run.head_sha || github.sha }}"
+
+            # 重建并滚动替换。数据在挂载的 ./data/resources 里,不受影响。
+            # 注意:api 重启后内存会话清空,需要重新登录一次(设计如此)。
+            docker compose up -d --build
+
+            # 清掉被替换下来的旧镜像层,免得服务器磁盘越跑越满
+            docker image prune -f
+
+            echo "--- 当前容器 ---"
+            docker compose ps

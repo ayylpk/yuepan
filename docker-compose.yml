@@ -1,0 +1,40 @@
+# 月畔小站 · 生产编排(web + api)
+#
+#   web  nginx:托管前端 dist,并把 /api 反代给 api  → 前后端同源
+#   api  uvicorn 单进程:提供 /api,数据落在挂载的 resources/
+#
+# 用法(在服务器上,与本文件同目录):
+#   cp .env.example .env   # 按服务器实际情况改
+#   docker compose up -d --build
+#
+# 三条最容易出人命的地方(改这个文件前先读):
+#   1) resources/ 必须落在宿主机上。它是唯一真相源(SQLite 库 + 照片 + 资料原件),
+#      挂错=每次部署数据清零。这里挂到 ./data/resources,与部署目录分开、可单独备份。
+#   2) api 只能单副本。会话是进程内字典(内存),多实例会互相不认登录态。
+#      所以不写 deploy.replicas,也不要给 api 做水平扩容。
+#   3) repos 目录要读写挂载。代码页的「git pull + 重建索引」会写这个目录,
+#      挂成 :ro 会让那两个按钮直接报错。
+
+services:
+  api:
+    build: ./back-yueyue
+    restart: unless-stopped
+    environment:
+      # 「在线看代码」读写的仓库根目录(容器内路径,与下面的挂载点一致)
+      REPOS_DIR: /srv/repos
+      # 同源反代用不到 CORS;万一前端要跨域直连本服务,在这里放开来源
+      # CORS_ORIGINS: https://你的前端域名
+    volumes:
+      # 唯一真相源:库 + 上传的照片/资料原件。【必须定期备份】
+      - ./data/resources:/app/resources
+      - ${REPOS_HOST_DIR:-./data/repos}:/srv/repos
+    expose:
+      - "8000"
+
+  web:
+    build: ./front-yueyue
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-8080}:80"

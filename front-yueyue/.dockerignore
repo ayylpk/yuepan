@@ -1,0 +1,6 @@
+# 构建上下文瘦身:node_modules 与 dist 由镜像内重新生成,别从本机拷
+node_modules/
+dist/
+.vscode/
+Thumbs.db
+.DS_Store

@@ -1,0 +1,78 @@
+# 月畔小站 · CI(持续集成)
+#
+# 触发:push 到 main、任何 PR。
+# 干什么:前端构建(含 vue-tsc 类型检查)+ 后端冒烟 43 项 + 两个镜像试构建。
+# 不干什么:不部署。部署在 cd.yml,且必须等这里全绿。
+#
+# 三条命令都是在本地验证过的,不是照抄模板:
+#   - npm run build = vue-tsc -b && vite build(类型错误会让 CI 红)
+#   - uv run --with httpx2 python smoke_test.py(实测 43/43、退出码 0;
+#     starlette 1.6 优先要 httpx2,用旧的 httpx 会走降级兼容并告警)
+#   - 冒烟脚本把 RESOURCES_DIR 沙箱到系统临时目录,不碰真库真盘,CI 里跑很安全
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同一分支连续 push 时,取消上一次没跑完的,省 runner
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: 前端构建(含类型检查)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front-yueyue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: front-yueyue/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  backend:
+    name: 后端冒烟(43 项)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: back-yueyue
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: 跑冒烟测试
+        # 脚本末尾是 sys.exit(0 if ok == n else 1),所以 43/43 才算过,失败会非零退出
+        run: uv run --with httpx2 python smoke_test.py
+
+  docker:
+    name: 镜像可构建
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      - name: 构建后端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./back-yueyue
+          push: false
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,scope=api,mode=max
+
+      - name: 构建前端镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ./front-yueyue
+          push: false
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,scope=web,mode=max
