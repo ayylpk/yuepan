@@ -10,11 +10,11 @@ import StageHero from '@/components/StageHero.vue'
 
 const ENTRIES = [
   { to: '/notes', img: 'banner-notes', zh: '笔记', en: 'notes', desc: 'markdown 手记,隐私笔记上锁' },
-  { to: '/projects', img: 'banner-projects', zh: '项目', en: 'projects', desc: '做过什么,一眼数得清' },
+  { to: '/characters', img: 'banner-notes', zh: '人物志', en: 'characters', desc: '用图像和细节记住人物' },
+  { to: '/anime', img: 'banner-photos', zh: '动漫', en: 'anime', desc: '按季与集收藏画面和感想' },
   { to: '/photos', img: 'banner-photos', zh: '照片', en: 'photos', desc: '挑出来的钉成一面墙' },
   // 资料卡暂时借首页那张海景(banner-files 出图后换成自己名字即可)
   { to: '/files', img: 'banner-home', zh: '资料', en: 'files', desc: 'txt/pdf 点开即看的架' },
-  { to: '/code', img: 'banner-code', zh: '代码', en: 'code', desc: '白名单仓库,在线翻源码' },
   { to: '/private', img: 'banner-private', zh: '小屋', en: 'the cave', desc: '第二道锁后面那间洞穴' },
 ]
 

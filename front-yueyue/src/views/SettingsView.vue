@@ -6,8 +6,6 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { ApiError, http } from '@/api/http'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import ProjectManager from '@/components/admin/ProjectManager.vue'
-import TechManager from '@/components/admin/TechManager.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -99,23 +97,12 @@ async function logout() {
       </section>
     </div>
 
-    <!-- 站点内容管理:本页在路由登录闸门之后,能站在这的就是自己人 -->
-    <header class="page-head admin-title">
-      <h2>站点管理</h2>
-      <p class="en">admin</p>
-    </header>
-    <div class="admin-stack">
-      <ProjectManager />
-      <TechManager />
-    </div>
   </div>
 </template>
 
 <style scoped>
 .settings { padding-top: 36px; }
 .set-grid { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-.admin-title { margin-top: 44px; }
-.admin-stack { display: grid; gap: 18px; }
 .set-card { padding: 22px 24px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
 .set-card h2 { margin: 0; font-size: 17px; color: var(--ink); }
 .now { margin: 0; font-size: 13px; color: var(--ink-soft); }

@@ -86,3 +86,17 @@ export interface MeInfo {
   username?: string
   private?: boolean
 }
+
+export interface CharacterField { id?: number; label: string; value: string }
+export interface CharacterImage { id: number; name: string; url: string }
+export interface CharacterProfile {
+  id: number; name: string; subtitle: string; bio: string; visibility: 'public' | 'private'
+  fields: CharacterField[]; images: CharacterImage[]; cover_image_id?: number | null
+}
+export interface AnimeImage { id: number; name: string; url: string; episode_id?: number | null }
+export interface AnimeEpisode { id: number; episode_number: number; title: string; feeling: string }
+export interface AnimeSeason { id: number; season_number: number; title: string; episodes: AnimeEpisode[] }
+export interface AnimeWork {
+  id: number; title: string; subtitle: string; description: string; visibility: 'public' | 'private'
+  seasons: AnimeSeason[]; images: AnimeImage[]; cover_image_id?: number | null
+}

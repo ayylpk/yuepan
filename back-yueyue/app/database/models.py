@@ -192,3 +192,80 @@ class File(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
+
+
+class CharacterProfile(Base):
+    __tablename__ = "character_profile"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(120))
+    subtitle: Mapped[str] = mapped_column(String(255), default="")
+    bio: Mapped[str] = mapped_column(Text, default="")
+    role: Mapped[int] = mapped_column(Integer, default=0)
+    cover_image_id: Mapped[int | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class CharacterField(Base):
+    __tablename__ = "character_field"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("character_profile.id"), index=True)
+    label: Mapped[str] = mapped_column(String(80))
+    value: Mapped[str] = mapped_column(String(500), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class CharacterImage(Base):
+    __tablename__ = "character_image"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    character_id: Mapped[int] = mapped_column(ForeignKey("character_profile.id"), index=True)
+    path: Mapped[str] = mapped_column(String(200))
+    name: Mapped[str] = mapped_column(String(255), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class AnimeWork(Base):
+    __tablename__ = "anime_work"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    title: Mapped[str] = mapped_column(String(120))
+    subtitle: Mapped[str] = mapped_column(String(255), default="")
+    description: Mapped[str] = mapped_column(Text, default="")
+    role: Mapped[int] = mapped_column(Integer, default=0)
+    cover_image_id: Mapped[int | None] = mapped_column(nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class AnimeSeason(Base):
+    __tablename__ = "anime_season"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    work_id: Mapped[int] = mapped_column(ForeignKey("anime_work.id"), index=True)
+    season_number: Mapped[int] = mapped_column(Integer, default=1)
+    title: Mapped[str] = mapped_column(String(120), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AnimeEpisode(Base):
+    __tablename__ = "anime_episode"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    season_id: Mapped[int] = mapped_column(ForeignKey("anime_season.id"), index=True)
+    episode_number: Mapped[int] = mapped_column(Integer, default=1)
+    title: Mapped[str] = mapped_column(String(120), default="")
+    feeling: Mapped[str] = mapped_column(Text, default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class AnimeImage(Base):
+    __tablename__ = "anime_image"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    work_id: Mapped[int] = mapped_column(ForeignKey("anime_work.id"), index=True)
+    episode_id: Mapped[int | None] = mapped_column(ForeignKey("anime_episode.id"), nullable=True, index=True)
+    path: Mapped[str] = mapped_column(String(200))
+    name: Mapped[str] = mapped_column(String(255), default="")
+    sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

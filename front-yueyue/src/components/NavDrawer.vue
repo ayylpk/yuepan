@@ -15,10 +15,10 @@ const auth = useAuthStore()
 const NAVS = [
   { to: '/', label: '首页', en: 'home', exact: true },
   { to: '/notes', label: '笔记', en: 'notes' },
-  { to: '/projects', label: '项目', en: 'projects' },
+  { to: '/characters', label: '人物志', en: 'characters' },
+  { to: '/anime', label: '动漫', en: 'anime' },
   { to: '/photos', label: '照片', en: 'photos' },
   { to: '/files', label: '资料', en: 'files' },
-  { to: '/code', label: '代码', en: 'code' },
 ]
 
 function isOn(n: { to: string; exact?: boolean }) {

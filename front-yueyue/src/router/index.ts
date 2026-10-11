@@ -14,7 +14,7 @@ const router = createRouter({
       component: () => import('@/layouts/SiteLayout.vue'),
       // meta.shell 决定页面用哪套骨架(10/09 重塑,取代原来的 hero 布尔值):
       //   stage  = 全屏季节舞台,内容压在地板带上(首页/照片/小屋,观赏型)
-      //   banner = 260px 窄横幅 + 内容紧接其后(笔记/项目/资料/代码,工具型)
+      //   banner = 260px 窄横幅 + 内容紧接其后(笔记/人物/动漫/资料,工具型)
       //   plain  = 无图,纯标题区(设置/笔记详情)
       // 判据只有一条:这一页是来"看"的还是来"用"的。
       children: [
@@ -22,10 +22,10 @@ const router = createRouter({
         { path: 'notes', name: 'notes', component: () => import('@/views/NotesView.vue'), meta: { title: '笔记 · 月畔小站', shell: 'banner' } },
         { path: 'notes/new', name: 'note-new', component: () => import('@/views/NoteView.vue'), meta: { title: '新笔记 · 月畔小站', shell: 'plain' } },
         { path: 'notes/:id', name: 'note', component: () => import('@/views/NoteView.vue'), meta: { title: '笔记 · 月畔小站', shell: 'plain' } },
-        { path: 'projects', name: 'projects', component: () => import('@/views/ProjectsView.vue'), meta: { title: '项目 · 月畔小站', shell: 'banner' } },
+        { path: 'characters', name: 'characters', component: () => import('@/views/CharactersView.vue'), meta: { title: '人物志 · 月畔小站', shell: 'banner' } },
+        { path: 'anime', name: 'anime', component: () => import('@/views/AnimeView.vue'), meta: { title: '动漫 · 月畔小站', shell: 'banner' } },
         { path: 'photos', name: 'photos', component: () => import('@/views/PhotosView.vue'), meta: { title: '照片 · 月畔小站', shell: 'stage' } },
         { path: 'files', name: 'files', component: () => import('@/views/FilesView.vue'), meta: { title: '资料 · 月畔小站', shell: 'banner' } },
-        { path: 'code', name: 'code', component: () => import('@/views/CodeView.vue'), meta: { title: '代码 · 月畔小站', shell: 'banner' } },
         { path: 'private', name: 'private', component: () => import('@/views/PrivateView.vue'), meta: { title: '小屋 · 月畔小站', shell: 'stage' } },
         { path: 'settings', name: 'settings', component: () => import('@/views/SettingsView.vue'), meta: { title: '设置 · 月畔小站', shell: 'plain' } },
       ],

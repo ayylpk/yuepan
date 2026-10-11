@@ -67,7 +67,7 @@ onMounted(load)
               <p class="excerpt">{{ d.content.slice(0, 66) }}{{ d.content.length > 66 ? '…' : '' }}</p>
               <div class="note-meta">
                 <span>{{ d.created_at.slice(0, 16) }}</span>
-                <span v-if="d.role === 1" class="private-badge">小屋</span>
+                <span v-if="d.role === 1" class="private-badge">仅隐私小屋</span>
               </div>
             </router-link>
           </div>

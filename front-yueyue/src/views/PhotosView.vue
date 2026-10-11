@@ -149,7 +149,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <span>{{ upload.file ? `已选:${upload.file.name}(${fmtSize(upload.file.size)})` : '点这里选图片(jpg/png/gif/webp/bmp)' }}</span>
         </label>
         <t-input v-model="upload.type" maxlength="20" placeholder="分类标签,如 2026夏(可留空,≤20 字)" />
-        <label class="private-switch"><t-switch v-model="upload.private" size="small" /> 收进小屋(不在墙上露出)</label>
+        <label class="private-switch"><t-switch v-model="upload.private" size="small" /> {{ upload.private ? '仅隐私小屋' : '公开展示' }}</label>
       </div>
     </t-dialog>
 

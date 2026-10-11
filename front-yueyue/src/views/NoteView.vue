@@ -21,6 +21,7 @@ const diary = ref<Diary | null>(null)
 const loading = ref(true)
 const editing = ref(false)
 const saving = ref(false)
+const previewing = ref(false)
 const form = reactive({ title: '', content: '', private: false })
 
 async function load() {
@@ -100,7 +101,8 @@ watch(() => route.params.id, load)
             <p v-if="!editing" class="note-meta">
               <span>{{ diary?.created_at.slice(0, 16) }}</span>
               <span v-if="diary && diary.updated_at !== diary.created_at">改于 {{ diary.updated_at.slice(0, 16) }}</span>
-              <span v-if="form.private" class="tag private">收在小屋</span>
+              <span v-if="form.private" class="tag private">仅隐私小屋</span>
+              <span v-else class="tag">公开展示</span>
             </p>
           </header>
           <div class="actions">
@@ -122,11 +124,16 @@ watch(() => route.params.id, load)
           <div class="edit-row">
             <t-input v-model="form.title" placeholder="标题" style="max-width: 420px" />
             <label class="private-switch">
-              <t-switch v-model="form.private" size="small" /> 藏进小屋(role=1)
+              <t-switch v-model="form.private" size="small" /> {{ form.private ? '仅隐私小屋' : '公开展示' }}
             </label>
           </div>
+          <div class="editor-toolbar">
+            <span>{{ previewing ? '预览' : '编辑' }}</span>
+            <t-button size="small" variant="outline" @click="previewing = !previewing">{{ previewing ? '继续编辑' : '预览排版' }}</t-button>
+          </div>
+          <MarkdownView v-if="previewing" :content="form.content" class="note-preview" />
           <t-textarea
-            v-model="form.content" placeholder="正文,支持 markdown(GFM 表格/代码块)"
+            v-else v-model="form.content" placeholder="正文,支持 Markdown、表格和围栏代码块"
             :autosize="{ minRows: 16, maxRows: 40 }"
           />
         </div>
@@ -155,5 +162,7 @@ watch(() => route.params.id, load)
   animation: copy-rise 0.7s 0.18s cubic-bezier(0.22, 0.61, 0.36, 1) backwards;
 }
 .edit-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.editor-toolbar { display: flex; justify-content: space-between; align-items: center; color: var(--ink-soft); font-size: 13px; }
+.note-preview { min-height: 180px; padding: 18px 22px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
 .private-switch { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-soft); }
 </style>

@@ -9,11 +9,22 @@ import hljs from 'highlight.js'
 const props = defineProps<{ content: string }>()
 const el = ref<HTMLElement>()
 
-marked.setOptions({ gfm: true, breaks: false })
+marked.setOptions({ gfm: true, breaks: true })
+
+function normalizeMarkdown(source: string) {
+  let fenced = false
+  return source.split('\n').map((line) => {
+    if (/^\s*(```|~~~)/.test(line)) {
+      fenced = !fenced
+      return line
+    }
+    return fenced ? line : line.replace(/^[\t ]+/, '')
+  }).join('\n')
+}
 
 async function render() {
   if (!el.value) return
-  el.value.innerHTML = await marked.parse(props.content || '')
+  el.value.innerHTML = await marked.parse(normalizeMarkdown(props.content || ''))
   await nextTick()
   el.value.querySelectorAll<HTMLElement>('pre code').forEach((block) => {
     hljs.highlightElement(block)
