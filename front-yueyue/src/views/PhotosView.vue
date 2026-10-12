@@ -5,10 +5,11 @@
 // 分页参数是 page_size(diary 用 size,photo 用 page_size —— 各端点自己的口径,以代码为准)。
 import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { DialogPlugin, MessagePlugin } from 'tdesign-vue-next'
-import { ApiError, http, postForm } from '@/api/http'
+import { http, postForm } from '@/api/http'
 import type { PageResult, Photo } from '@/api/types'
 import { asset } from '@/stores/season'
 import StageHero from '@/components/StageHero.vue'
+import { uploadImagesSequentially } from '@/utils/uploadImages'
 
 const PAGE_SIZE = 24 // 一墙 24 张(10/09 统一口径:分页控件翻页,不再"继续挂")
 
@@ -18,7 +19,7 @@ const page = ref(1)
 const loading = ref(true)
 const error = ref('')
 
-const upload = reactive({ open: false, file: null as File | null, type: '', private: false, busy: false })
+const upload = reactive({ open: false, files: [] as File[], type: '', private: false, busy: false })
 const viewer = ref<Photo | null>(null) // 大图预览(lightbox)
 
 function srcOf(p: Photo) {
@@ -45,23 +46,24 @@ async function load() {
 }
 
 async function doUpload() {
-  if (!upload.file) {
-    MessagePlugin.warning('先选一张图片')
+  if (!upload.files.length) {
+    MessagePlugin.warning('先选择图片')
     return
   }
   upload.busy = true
-  const form = new FormData()
-  form.append('file', upload.file)
-  form.append('type', upload.type.trim())
-  form.append('role', upload.private ? '1' : '0')
+  const result = await uploadImagesSequentially(upload.files, async file => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('type', upload.type.trim())
+    form.append('role', upload.private ? '1' : '0')
+    await postForm<Photo>('/api/photo', form)
+  })
   try {
-    const created = await postForm<Photo>('/api/photo', form)
-    MessagePlugin.success(upload.private ? '已收进小屋' : `钉上墙了:${created.name}`)
-    Object.assign(upload, { open: false, file: null, type: '', private: false })
+    if (result.succeeded.length) MessagePlugin.success(upload.private ? `已收进小屋 ${result.succeeded.length} 张` : `已钉上墙 ${result.succeeded.length} 张`)
+    if (result.failed.length) MessagePlugin.warning(`${result.failed.length} 张上传失败，可重新选择后再试`)
+    Object.assign(upload, { open: false, files: [], type: '', private: false })
     page.value = 1 // 新图回第一页:不然站在第 3 页挂完,会以为没上去
     await load()
-  } catch (e) {
-    MessagePlugin.error(e instanceof ApiError ? e.message : '上传失败')
   } finally {
     upload.busy = false
   }
@@ -81,9 +83,8 @@ function confirmDelete(p: Photo) {
 }
 
 function pickFile(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0]
-  if (!f) return
-  upload.file = f
+  upload.files = Array.from((e.target as HTMLInputElement).files || [])
+  ;(e.target as HTMLInputElement).value = ''
 }
 
 // Esc 关预览
@@ -145,8 +146,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     <t-dialog v-model:visible="upload.open" header="传照片" :confirm-btn="{ loading: upload.busy }" @confirm="doUpload">
       <div class="up-form">
         <label class="file-pick">
-          <input type="file" accept="image/*" @change="pickFile" />
-          <span>{{ upload.file ? `已选:${upload.file.name}(${fmtSize(upload.file.size)})` : '点这里选图片(jpg/png/gif/webp/bmp)' }}</span>
+          <input type="file" accept="image/*" multiple @change="pickFile" />
+          <span>{{ upload.files.length ? `已选 ${upload.files.length} 张图片` : '点这里批量选择图片(jpg/png/gif/webp/bmp)' }}</span>
         </label>
         <t-input v-model="upload.type" maxlength="20" placeholder="分类标签,如 2026夏(可留空,≤20 字)" />
         <label class="private-switch"><t-switch v-model="upload.private" size="small" /> {{ upload.private ? '仅隐私小屋' : '公开展示' }}</label>
