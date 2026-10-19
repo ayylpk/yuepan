@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.common.config.settings import API_PREFIX
@@ -56,12 +56,22 @@ def _visible(row, show_private: bool):
     return row
 
 
+def _fmt_time(value):
+    """时间统一成和 diary/file/photo 一样的 "YYYY-MM-DD HH:MM:SS"。
+
+    原来直接把 datetime 交给 FastAPI,序列化成 ISO("2026-10-19T02:55:46"),
+    前端 slice(0,16) 会在界面上留下一个 T("2026-10-19T02:55")。
+    """
+    return value.strftime("%Y-%m-%d %H:%M:%S") if hasattr(value, "strftime") else value
+
+
 def _base(row):
-    return {"id": row.id, "visibility": "private" if row.role else "public", "created_at": row.created_at, "updated_at": getattr(row, "updated_at", row.created_at)}
-
-
-async def _image_url(kind: str, image_id: int, db: AsyncSession):
-    return f"/api/content/images/{kind}/{image_id}"
+    return {
+        "id": row.id,
+        "visibility": "private" if row.role else "public",
+        "created_at": _fmt_time(row.created_at),
+        "updated_at": _fmt_time(getattr(row, "updated_at", row.created_at)),
+    }
 
 
 async def _character_data(row, db):
@@ -88,8 +98,42 @@ async def _anime_data(row, db):
 
 @router.get("/characters")
 async def list_characters(db: Db, show_private: ShowPrivate):
+    """列表只回摘要(10/19):只带封面那一张,不再把每个人的全部图片塞进响应。
+
+    列表页实际只需要 名字/副标题/简介 + 封面 + 图集数量;
+    原来的做法对每个人调 _character_data,把 images 整个数组都发下去。
+    → 现在返回 CharacterSummary:{..., cover: {id,name,url}|null, image_count}
+      完整图集走 GET /api/characters/{id}。
+    封面与计数都是"一次 in_ 查询",不是每人查一次。
+    注意 image_count 是**图集张数(不含肖像)** —— 和详情页「批量图片 N」的口径一致。
+    """
     rows = (await db.scalars(select(models.CharacterProfile).order_by(models.CharacterProfile.updated_at.desc()))).all()
-    return [await _character_data(r, db) for r in rows if r.role == 0 or show_private]
+    visible = [r for r in rows if r.role == 0 or show_private]
+    if not visible:
+        return []
+    ids = [r.id for r in visible]
+    counts = dict((await db.execute(
+        select(models.CharacterImage.character_id, func.count())
+        .where(models.CharacterImage.character_id.in_(ids))
+        .group_by(models.CharacterImage.character_id)
+    )).all())
+    cover_ids = [r.cover_image_id for r in visible if r.cover_image_id]
+    covers = {}
+    if cover_ids:
+        for img in (await db.scalars(select(models.CharacterImage).where(models.CharacterImage.id.in_(cover_ids)))).all():
+            covers[img.id] = {"id": img.id, "name": img.name, "url": f"/api/content/images/character/{img.id}"}
+    return [
+        _base(r) | {
+            "name": r.name,
+            "subtitle": r.subtitle,
+            "bio": r.bio,
+            "cover_image_id": r.cover_image_id,
+            "cover": covers.get(r.cover_image_id) if r.cover_image_id else None,
+            # 肖像也算在 character_image 里,这里减掉它,口径与详情页「批量图片 N」一致
+            "image_count": max(0, counts.get(r.id, 0) - (1 if r.cover_image_id in covers else 0)),
+        }
+        for r in visible
+    ]
 
 
 @router.post("/characters")
@@ -129,6 +173,26 @@ async def upload_character_image(character_id: int, login: LoginUser, db: Db, fi
     return {"id": image.id, "name": image.name, "url": f"/api/content/images/character/{image.id}"}
 
 
+@router.post("/characters/{character_id}/portrait")
+async def upload_character_portrait(character_id: int, login: LoginUser, db: Db, file: UploadFile = File(...)):
+    """独立肖像位(简历照片那张):上传后直接置为 cover_image_id。
+
+    与批量图集共用 character_image 表,但语义是"封面"——前端把它从图集里过滤掉单独渲染。
+    重新上传只是换一个 cover 指向,旧图仍留在图集里(不主动删用户文件)。
+    """
+    row = await db.get(models.CharacterProfile, character_id)
+    if not row: raise HTTPException(404, "人物不存在")
+    path, size = await storage.save("photo", file, allowed_exts=storage.IMAGE_EXTS, magic_check=True)
+    image = models.CharacterImage(
+        character_id=character_id, path=path,
+        name=storage.original_name(file.filename or ""), size=size, sort_order=-1,
+    )
+    db.add(image); await db.flush()
+    row.cover_image_id = image.id
+    await db.commit(); await db.refresh(row)
+    return await _character_data(row, db)
+
+
 @router.delete("/characters/{character_id}")
 async def delete_character(character_id: int, login: LoginUser, db: Db, show_private: ShowPrivate):
     row = _visible(await db.get(models.CharacterProfile, character_id), show_private)
@@ -142,8 +206,47 @@ async def delete_character(character_id: int, login: LoginUser, db: Db, show_pri
 
 @router.get("/anime")
 async def list_anime(db: Db, show_private: ShowPrivate):
+    """列表只回摘要(10/19):不再把所有作品的季/集/图全塞进响应。
+
+    之前每部作品都带完整 seasons(内含 episodes)+ images,26 张图的作品一次就上百行;
+    列表页其实只需要 标题/副标题/简介 + 三个计数。
+    → 现在返回 AnimeSummary:{..., image_count, season_count, episode_count},
+    详细内容走 GET /api/anime/{work_id}。
+    三个计数用三条 group by 一次算完(不是每部作品查三次,N+1 也一并消掉)。
+    """
     rows = (await db.scalars(select(models.AnimeWork).order_by(models.AnimeWork.updated_at.desc()))).all()
-    return [await _anime_data(r, db) for r in rows if r.role == 0 or show_private]
+    visible = [r for r in rows if r.role == 0 or show_private]
+    if not visible:
+        return []
+    ids = [r.id for r in visible]
+    image_counts = dict((await db.execute(
+        select(models.AnimeImage.work_id, func.count())
+        .where(models.AnimeImage.work_id.in_(ids))
+        .group_by(models.AnimeImage.work_id)
+    )).all())
+    season_counts = dict((await db.execute(
+        select(models.AnimeSeason.work_id, func.count())
+        .where(models.AnimeSeason.work_id.in_(ids))
+        .group_by(models.AnimeSeason.work_id)
+    )).all())
+    episode_counts = dict((await db.execute(
+        select(models.AnimeSeason.work_id, func.count(models.AnimeEpisode.id))
+        .join(models.AnimeEpisode, models.AnimeEpisode.season_id == models.AnimeSeason.id)
+        .where(models.AnimeSeason.work_id.in_(ids))
+        .group_by(models.AnimeSeason.work_id)
+    )).all())
+    return [
+        _base(r) | {
+            "title": r.title,
+            "subtitle": r.subtitle,
+            "description": r.description,
+            "cover_image_id": r.cover_image_id,
+            "image_count": image_counts.get(r.id, 0),
+            "season_count": season_counts.get(r.id, 0),
+            "episode_count": episode_counts.get(r.id, 0),
+        }
+        for r in visible
+    ]
 
 
 @router.post("/anime")

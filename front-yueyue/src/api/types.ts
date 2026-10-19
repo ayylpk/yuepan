@@ -92,6 +92,7 @@ export interface CharacterImage { id: number; name: string; url: string }
 export interface CharacterProfile {
   id: number; name: string; subtitle: string; bio: string; visibility: 'public' | 'private'
   fields: CharacterField[]; images: CharacterImage[]; cover_image_id?: number | null
+  created_at?: string; updated_at?: string
 }
 export interface AnimeImage { id: number; name: string; url: string; episode_id?: number | null }
 export interface AnimeEpisode { id: number; episode_number: number; title: string; feeling: string }
@@ -99,4 +100,20 @@ export interface AnimeSeason { id: number; season_number: number; title: string;
 export interface AnimeWork {
   id: number; title: string; subtitle: string; description: string; visibility: 'public' | 'private'
   seasons: AnimeSeason[]; images: AnimeImage[]; cover_image_id?: number | null
+  created_at?: string; updated_at?: string
+}
+/** 列表接口 GET /api/characters 的返回:只带封面那一张 + 图集数量 */
+export interface CharacterSummary {
+  id: number; name: string; subtitle: string; bio: string; visibility: 'public' | 'private'
+  cover_image_id?: number | null
+  cover?: CharacterImage | null
+  image_count: number
+  created_at?: string; updated_at?: string
+}
+/** 列表接口 GET /api/anime 的返回:只有摘要与计数,详细内容走 /api/anime/{id} */
+export interface AnimeSummary {
+  id: number; title: string; subtitle: string; description: string; visibility: 'public' | 'private'
+  cover_image_id?: number | null
+  image_count: number; season_count: number; episode_count: number
+  created_at?: string; updated_at?: string
 }
