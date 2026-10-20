@@ -110,7 +110,6 @@ async function uploadBatch(event: Event) {
   if (result.failed.length) MessagePlugin.warning(`已上传 ${result.succeeded.length} 张，${result.failed.length} 张失败`)
   else MessagePlugin.success(`已加入 ${result.succeeded.length} 张图片`)
 }
-const openImage = (url: string, name: string) => { viewer.value = { url, name } }
 onMounted(load)
 watch(() => route.params.id, load)
 </script>
@@ -162,11 +161,10 @@ watch(() => route.params.id, load)
         <section class="gallery-section">
           <div class="section-head">
             <h3>批量图片 <small>{{ gallery.length }}</small></h3>
-            <label class="upload">{{ uploadingBatch ? '上传中…' : '+ 批量上传' }}<input type="file" accept="image/*" multiple :disabled="uploadingBatch" @change="uploadBatch" /></label>
-          </div>
-          <div class="gallery">
-            <button v-for="image in gallery" :key="image.id" class="image-thumb" type="button" :aria-label="`放大图片：${image.name}`" @click="openImage(image.url, image.name)"><img :src="image.url" :alt="image.name" /></button>
-            <p v-if="!gallery.length" class="hint">还没有图片。</p>
+            <div class="section-actions">
+              <t-button size="small" variant="outline" @click="router.push(`/characters/${characterId}/images`)">查看图片</t-button>
+              <label class="upload">{{ uploadingBatch ? '上传中…' : '+ 批量上传' }}<input type="file" accept="image/*" multiple :disabled="uploadingBatch" @change="uploadBatch" /></label>
+            </div>
           </div>
         </section>
 
@@ -225,10 +223,7 @@ watch(() => route.params.id, load)
 .section-head small { color: var(--ink-soft); font-weight: 400; }
 .upload { padding: 7px 11px; border: 1px solid var(--line); border-radius: 7px; color: var(--brand); cursor: pointer; font-size: 13px; }
 .upload input { display: none; }
-.gallery { display: flex; gap: 9px; flex-wrap: wrap; }
-.gallery .hint { color: var(--ink-soft); font-size: 13px; }
-.image-thumb { width: 112px; height: 84px; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: none; cursor: zoom-in; }
-.image-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.section-actions { display: flex; align-items: center; gap: 8px; }
 .editor { position: fixed; z-index: 20; right: 24px; bottom: 24px; width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; padding: 22px; box-shadow: var(--shadow); }
 .editor-head, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .editor-head h2 { margin: 0; font-size: 20px; }

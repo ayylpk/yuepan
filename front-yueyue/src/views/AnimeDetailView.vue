@@ -6,7 +6,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { ApiError, http, postForm } from '@/api/http'
 import type { AnimeWork } from '@/api/types'
-import ImageLightbox from '@/components/ImageLightbox.vue'
 import { uploadImagesSequentially } from '@/utils/uploadImages'
 import { getNextEpisodeNumber, getNextSeasonNumber, isValidPositiveInteger } from '@/utils/animeEntryForm'
 
@@ -20,7 +19,6 @@ const editing = ref(false)
 const saving = ref(false)
 const form = reactive({ title: '', subtitle: '', description: '', visibility: 'public' })
 const selectedSeason = ref<number | null>(null)
-const viewer = ref<{ url: string; name: string } | null>(null)
 const uploading = ref<string | null>(null)
 const entryDialog = ref<{ kind: 'season' | 'episode'; workId: number; seasonId?: number; context: string } | null>(null)
 const entryForm = reactive({ number: 1, title: '' })
@@ -129,7 +127,6 @@ async function upload(event: Event, episode_id?: number) {
   if (result.failed.length) MessagePlugin.warning(`已上传 ${result.succeeded.length} 张，${result.failed.length} 张失败`)
   else MessagePlugin.success(episode_id ? `已加入本集和总图集：${result.succeeded.length} 张` : `已加入总图集：${result.succeeded.length} 张`)
 }
-const openImage = (url: string, name: string) => { viewer.value = { url, name } }
 onMounted(load)
 watch(() => route.params.id, load)
 </script>
@@ -160,11 +157,10 @@ watch(() => route.params.id, load)
         <section class="collection">
           <div class="section-head">
             <h3>图片总集 <small>{{ work.images.length }}</small></h3>
-            <label class="upload">{{ uploading === `${work.id}:all` ? '上传中…' : '批量上传图片' }}<input type="file" accept="image/*" multiple :disabled="uploading === `${work.id}:all`" @change="upload($event)" /></label>
-          </div>
-          <div class="gallery">
-            <button v-for="image in work.images" :key="image.id" class="image-thumb" type="button" :aria-label="`放大图片：${image.name}`" @click="openImage(image.url, image.name)"><img :src="image.url" :alt="image.name" /></button>
-            <p v-if="!work.images.length" class="hint">还没有图片。</p>
+            <div class="section-actions">
+              <t-button size="small" variant="outline" @click="router.push(`/anime/${work.id}/images`)">查看图片</t-button>
+              <label class="upload">{{ uploading === `${work.id}:all` ? '上传中…' : '批量上传' }}<input type="file" accept="image/*" multiple :disabled="uploading === `${work.id}:all`" @change="upload($event)" /></label>
+            </div>
           </div>
         </section>
 
@@ -180,9 +176,9 @@ watch(() => route.params.id, load)
               <article v-for="episode in season.episodes" :key="episode.id" class="episode">
                 <div class="episode-title">第{{ episode.episode_number }}集<span v-if="episode.title"> · {{ episode.title }}</span></div>
                 <t-textarea v-model="episode.feeling" placeholder="写下这一集的感想" :autosize="{ minRows: 2, maxRows: 8 }" @blur="updateFeeling(episode.id, episode.episode_number, episode.title, episode.feeling)" />
-                <div class="episode-gallery">
-                  <button v-for="image in work.images.filter(i => i.episode_id === episode.id)" :key="image.id" class="image-thumb" type="button" :aria-label="`放大图片：${image.name}`" @click="openImage(image.url, image.name)"><img :src="image.url" :alt="image.name" /></button>
-                  <label class="upload small">{{ uploading === `${work.id}:${episode.id}` ? '上传中…' : '+ 本集图片' }}<input type="file" accept="image/*" multiple :disabled="uploading === `${work.id}:${episode.id}`" @change="upload($event, episode.id)" /></label>
+                <div class="episode-actions">
+                  <t-button size="small" variant="outline" @click="router.push(`/anime/${work.id}/images?episode=${episode.id}`)">查看本集</t-button>
+                  <label class="upload inline">{{ uploading === `${work.id}:${episode.id}` ? '上传中…' : '+ 本集图片' }}<input type="file" accept="image/*" multiple :disabled="uploading === `${work.id}:${episode.id}`" @change="upload($event, episode.id)" /></label>
                 </div>
               </article>
               <p v-if="!season.episodes.length" class="hint">本季还没有集数。</p>
@@ -210,7 +206,6 @@ watch(() => route.params.id, load)
             <p class="entry-hint">{{ entryDialog.kind === 'season' ? '季数已按现有内容自动接续，也可以自行调整。' : '集数已按本季内容自动接续，也可以自行调整。' }}</p>
           </div>
         </t-dialog>
-        <ImageLightbox v-if="viewer" :src="viewer.url" :alt="viewer.name" :caption="viewer.name" @close="viewer = null" />
       </template>
     </t-loading>
   </div>
@@ -229,18 +224,16 @@ watch(() => route.params.id, load)
 .collection, .seasons { margin-top: 26px; }
 .upload { padding: 7px 11px; border: 1px solid var(--line); border-radius: 7px; color: var(--brand); cursor: pointer; font-size: 13px; }
 .upload input { display: none; }
-.gallery, .episode-gallery { display: flex; gap: 9px; flex-wrap: wrap; }
-.gallery .hint, .seasons .hint { color: var(--ink-soft); font-size: 13px; }
-.image-thumb { width: 112px; height: 84px; padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: none; cursor: zoom-in; }
-.image-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.seasons .hint { color: var(--ink-soft); font-size: 13px; }
+.section-actions { display: flex; align-items: center; gap: 8px; }
+.episode-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.upload.inline { padding: 5px 10px; font-size: 12px; }
 .season { border-top: 1px solid var(--line); }
 .season-toggle { width: 100%; display: flex; justify-content: space-between; padding: 14px 4px; border: 0; background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
 .episodes { padding: 0 8px 16px; }
 .episode-tools { display: flex; justify-content: flex-end; margin-bottom: 10px; }
 .episode { padding: 12px 0; border-top: 1px solid var(--line); }
 .episode-title { font-size: 14px; font-weight: 600; margin-bottom: 9px; }
-.episode-gallery { margin-top: 9px; }
-.upload.small { width: 112px; height: 84px; display: grid; place-items: center; }
 .editor { position: fixed; z-index: 20; right: 24px; bottom: 24px; width: min(620px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto; padding: 22px; box-shadow: var(--shadow); }
 .editor-head, .editor-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .editor-head h2 { margin: 0; font-size: 20px; }
@@ -259,6 +252,5 @@ watch(() => route.params.id, load)
 .entry-hint { margin: 12px 0 0; color: var(--ink-soft); font-size: 12px; line-height: 1.6; }
 @media (max-width: 640px) {
   .form-grid { grid-template-columns: 1fr; }
-  .image-thumb, .upload.small { width: calc((100vw - 86px) / 3); height: 80px; }
 }
 </style>
